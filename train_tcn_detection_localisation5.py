@@ -12,9 +12,9 @@ from torch.utils.data import Dataset, DataLoader
 from sklearn.metrics import confusion_matrix, accuracy_score
 
 
-# ======================
+
 # CONFIG
-# ======================
+
 DATASET_ROOT    = "/content/training_cases_output"
 DRIVE_SAVE_PATH = "/content/drive/MyDrive/colab_upload/multileak_tcn_bundle.pt"
 
@@ -48,9 +48,9 @@ def set_seed(seed: int):
 set_seed(SEED)
 
 
-# ======================
+
 # DATA HELPERS
-# ======================
+
 def list_valid_scenario_folders(root: str):
     if not os.path.isdir(root):
         raise FileNotFoundError(f"Dataset root '{root}' not found.")
@@ -79,16 +79,7 @@ def compute_mu_sigma(folders):
 
 
 def encode_labels_from_json(labels: dict):
-    """
-    Converts your labels.json into fixed-size targets for MAX_LEAKS=3.
 
-    Returns:
-      leak_count: int in [0..3]
-      pipe_targets: (3,) long in [0..5] where 5=NONE
-      pos_targets:  (3,) float
-      size_targets: (3,) long in [0..3] where 3=NONE
-      slot_mask:    (3,) float 1.0 if slot is real leak else 0.0
-    """
     leaks = labels.get("leaks", [])
     leak_count = int(len(leaks))
 
@@ -98,9 +89,6 @@ def encode_labels_from_json(labels: dict):
     size_targets = [SIZE_NONE_IDX] * MAX_LEAKS
     slot_mask    = [0.0] * MAX_LEAKS
 
-    # Ensure deterministic ordering:
-    # your generator already stores in ascending pipe order,
-    # but we sort anyway for safety.
     leaks_sorted = sorted(leaks, key=lambda x: int(x.get("pipe_id", 999)))
 
     for i, lk in enumerate(leaks_sorted[:MAX_LEAKS]):
@@ -161,9 +149,9 @@ class LeakDatasetMulti(Dataset):
         )
 
 
-# ======================
+
 # MODEL
-# ======================
+
 class MultiLeakTCN(nn.Module):
     """
     Shared TCN backbone + multi-head outputs:
@@ -205,15 +193,13 @@ class MultiLeakTCN(nn.Module):
         return count_logits, pipe_logits, size_logits, pos_pred
 
 
-# ======================
 # TRAIN / EVAL
-# ======================
+
 folders = list_valid_scenario_folders(DATASET_ROOT)
 if len(folders) == 0:
     raise FileNotFoundError(f"No scenario folders with signals.csv + labels.json found inside '{DATASET_ROOT}'.")
 
 # Stratified split: no-leak and leak folders are split independently
-# to guarantee no-leak scenarios are always represented in training.
 no_leak_folders = [f for f in folders if "no_leak" in os.path.basename(f)]
 leak_folders    = [f for f in folders if "no_leak" not in os.path.basename(f)]
 
@@ -247,7 +233,7 @@ opt = torch.optim.Adam(model.parameters(), lr=LR)
 loss_count = nn.CrossEntropyLoss()
 loss_pipe  = nn.CrossEntropyLoss()
 loss_size  = nn.CrossEntropyLoss()
-loss_pos   = nn.SmoothL1Loss(reduction="none")  # we'll mask manually
+loss_pos   = nn.SmoothL1Loss(reduction="none")
 
 
 for ep in range(EPOCHS):
@@ -270,8 +256,6 @@ for ep in range(EPOCHS):
         Lc = loss_count(count_logits, leak_count)
 
         # 2) pipe loss — masked to real leak slots only
-        # This prevents gradient interference between the NONE class (index 5)
-        # and pipe 5 (index 4), which caused false pipe-5 detections on no-leak inputs.
         slot_mask_flat = slot_mask.reshape(-1).bool()          # (B*3,)
         pipe_logits_flat = pipe_logits.reshape(-1, PIPE_CLASSES)
         pipe_t_flat = pipe_t.reshape(-1)
@@ -291,7 +275,6 @@ for ep in range(EPOCHS):
             Ls = torch.tensor(0.0, device=device)
 
         # 4) position loss — masked to real leak slots only
-        # SmoothL1Loss gives (B,3), we mask and average safely
         pos_err = loss_pos(pos_pred, pos_t)            # (B,3)
         masked = pos_err * slot_mask                   # keep only real leaks
         denom = slot_mask.sum().clamp(min=1.0)
@@ -306,9 +289,9 @@ for ep in range(EPOCHS):
     print(f"Epoch {ep+1}/{EPOCHS}, loss={total/len(train_loader):.4f}")
 
 
-# ======================
+
 # SAVE BUNDLE
-# ======================
+
 save_bundle = {
     "model_state_dict": model.state_dict(),
     "mu": mu,
@@ -329,9 +312,8 @@ torch.save(save_bundle, DRIVE_SAVE_PATH)
 print(f"[OK] Saved model to {DRIVE_SAVE_PATH}")
 
 
-# ======================
 # TEST METRICS (basic)
-# ======================
+
 model.eval()
 
 count_true, count_pred = [], []
@@ -351,7 +333,7 @@ print("Accuracy:", accuracy_score(count_true, count_pred))
 print(confusion_matrix(count_true, count_pred))
 
 
-# Optional: Slot-wise pipe accuracy (including NONE)
+# Slot-wise pipe accuracy (including NONE)
 pipe_true_all, pipe_pred_all = [], []
 pos_true_all, pos_pred_all = [], []
 size_true_all, size_pred_all = [], []

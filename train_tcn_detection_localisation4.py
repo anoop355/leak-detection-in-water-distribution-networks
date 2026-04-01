@@ -1,3 +1,10 @@
+"""
+Updates in this version:
+- switches to `stgcn_dataset_v2`
+- uses all ten sensor channels instead of the reduced three-sensor subset
+- keeps the multi-leak output heads for direct comparison with the ST-GCN work
+"""
+
 import os
 import json
 import random
@@ -12,16 +19,16 @@ from torch.utils.data import Dataset, DataLoader
 from sklearn.metrics import confusion_matrix, accuracy_score, f1_score
 
 
-# ======================
+
 # CONFIG
-# ======================
+
 DATASET_ROOT   = "stgcn_dataset_v2/scenarios"
 MANIFEST_TRAIN = "stgcn_dataset_v2/manifests/manifest_train.csv"
 MANIFEST_VAL   = "stgcn_dataset_v2/manifests/manifest_val.csv"
 MANIFEST_TEST  = "stgcn_dataset_v2/manifests/manifest_test.csv"
 FEATURE_COLS   = ["P2","P3","P4","P5","P6","Q1a","Q2a","Q3a","Q4a","Q5a"]
 
-WINDOW = 12        # each scenario has exactly 12 timesteps (15-min intervals)
+WINDOW = 12        # each scenario spans 12 fifteen-minute timesteps
 STRIDE = 1
 BATCH_SIZE = 64
 EPOCHS = 10
@@ -30,11 +37,11 @@ SEED = 42
 
 NUM_PIPES = 5
 
-# Pipe classes: 0..4 = pipes 1..5, 5 = NONE
+# Pipe classes: 0..4 map to pipes 1..5, and 5 marks an unused slot.
 PIPE_NONE_IDX = NUM_PIPES
 PIPE_CLASSES  = NUM_PIPES + 1
 
-# Size classes: 0=S,1=M,2=L, 3=NONE
+# Size classes: 0=S, 1=M, 2=L, and 3 marks an unused slot.
 SIZE_TO_IDX  = {"S": 0, "M": 1, "L": 2}
 SIZE_NONE_IDX = 3
 SIZE_CLASSES  = 4
@@ -48,9 +55,9 @@ def set_seed(seed: int):
 set_seed(SEED)
 
 
-# ======================
+
 # DATA HELPERS
-# ======================
+
 def folders_from_manifest(manifest_path: str):
     """Return list of scenario folder paths listed in a manifest CSV."""
     df = pd.read_csv(manifest_path)
@@ -75,15 +82,7 @@ def compute_mu_sigma(folders):
 
 
 def encode_labels_from_json(labels: dict):
-    """
-    Converts a single-leak labels.json into scalar targets.
 
-    Returns:
-      detect:    int  0=no-leak, 1=leak
-      pipe_t:    int  0..4 = pipe 1..5,  5 = NONE
-      pos_t:     float  0.0 if no leak
-      size_t:    int  0=S,1=M,2=L,  3 = NONE
-    """
     detect = int(labels.get("label_detection", 0))
 
     if detect == 1:
@@ -143,9 +142,7 @@ class LeakDataset(Dataset):
         )
 
 
-# ======================
 # MODEL
-# ======================
 class LeakTCN(nn.Module):
     """
     Shared TCN backbone + single-leak output heads:
@@ -184,9 +181,8 @@ class LeakTCN(nn.Module):
         return detect_logits, pipe_logits, size_logits, pos_pred
 
 
-# ======================
 # TRAIN / EVAL
-# ======================
+
 train_f = folders_from_manifest(MANIFEST_TRAIN)
 val_f   = folders_from_manifest(MANIFEST_VAL)
 test_f  = folders_from_manifest(MANIFEST_TEST)
@@ -212,7 +208,7 @@ opt = torch.optim.Adam(model.parameters(), lr=LR)
 loss_detect = nn.CrossEntropyLoss()
 loss_pipe   = nn.CrossEntropyLoss()
 loss_size   = nn.CrossEntropyLoss()
-loss_pos    = nn.SmoothL1Loss(reduction="none")  # masked manually
+loss_pos    = nn.SmoothL1Loss(reduction="none")  
 
 
 for ep in range(EPOCHS):
@@ -254,9 +250,8 @@ for ep in range(EPOCHS):
     print(f"Epoch {ep+1}/{EPOCHS}, loss={total/len(train_loader):.4f}")
 
 
-# ======================
 # SAVE BUNDLE
-# ======================
+
 save_bundle = {
     "model_state_dict": model.state_dict(),
     "mu": mu,
@@ -273,9 +268,8 @@ torch.save(save_bundle, "leak_tcn_v2_bundle.pt")
 print("[OK] Saved leak_tcn_v2_bundle.pt")
 
 
-# ======================
 # TEST METRICS
-# ======================
+
 model.eval()
 
 detect_true, detect_pred = [], []

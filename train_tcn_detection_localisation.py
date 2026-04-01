@@ -1,3 +1,9 @@
+"""
+Updates in this version:
+- trains on the original `manual_output` dataset layout
+- predicts leak presence, pipe location, and leak position
+"""
+
 import os
 import json
 import random
@@ -15,7 +21,7 @@ from sklearn.metrics import confusion_matrix, accuracy_score
 DATASET_ROOT = "manual_output"
 FEATURE_COLS = ["P2","P3","P4","P5","P6","Q1a","Q2a","Q3a","Q4a","Q5a"]
 
-# window and stride for sliding window segementation
+# Sliding-window settings used for the baseline runs.
 WINDOW = 180
 STRIDE = 10
 BATCH_SIZE = 64
@@ -52,7 +58,7 @@ class LeakDataset(Dataset):
 
             if leak == 1:
                 pipe_id = int(labels.get("pipe_id", 1))
-                pipe = pipe_id - 1                       # convert to 0-indexed for torch
+                pipe = pipe_id - 1                       # convert to zero-based indexing for torch
                 pos = float(labels.get("position", 0.0))
             else:
                 pipe = -1
@@ -181,7 +187,7 @@ for ep in range(EPOCHS):
         # Detection loss (always)
         Ld = loss_det(d.squeeze(), leak)
 
-        # only compute pipe/position loss on leak windows
+        # compute pipe/position loss on leak windows
         mask = (leak == 1)
 
         if mask.any():

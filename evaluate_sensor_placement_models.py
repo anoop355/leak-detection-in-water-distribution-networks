@@ -1,40 +1,11 @@
 """
-multi_model_evaluate.py  (REVISED)
+This script compares the sensor-placement models against a shared evaluation
+set and records both classification and localisation metrics per placement.
 
-Changes vs original:
-  FIX 1  : Removed redundant correct_pipe_f1_micro metric. match_pipes_only and
-            match_correct_pipe_any_pos produced identical F1 scores because both
-            perform greedy pipe-ID-only matching. Only match_pipes_only is retained
-            for pipe identification F1. The position error collection is still handled
-            via match_correct_pipe_any_pos (pipe-correct, any position), which is
-            correct for MAE/RMSE/R2.
-
-  FIX 2  : Added pipe macro F1 to per-model summary and global comparison table.
-            Macro F1 averages per-pipe F1 scores equally across all five pipes,
-            consistent with the single-model evaluator (evaluate_model.py).
-
-  FIX 3  : Added count classification macro F1 and per-class precision/recall/F1
-            to per-model outputs (count_classification_per_class.csv,
-            count_classification_summary.json). Consistent with evaluate_model.py.
-
-  FIX 4  : Added position RMSE and R2 (overall and per-pipe) to per-model outputs.
-            pos_pairs (true_pos, pred_pos, pipe_id) are now collected per model,
-            enabling regression metrics and scatter plot data export.
-
-  FIX 5  : Changed POS_TOL from 0.10 to 0.25 (normalised pipe length), per WASA
-            confirmation that a 25% pipe-length search zone is operationally
-            acceptable for field crew deployment.
-
-  FIX 6  : Added pipe+position macro F1 (pipe_pos_tol_macro_f1). Computed by
-            averaging per-pipe F1 scores equally across all five pipes using the
-            tolerance-based matching stats (pipe_tol_stats). This is the primary
-            ranking criterion for sensor configuration comparison in Section X.3.2.
-            Consistent with how pipe_macro_f1 is computed from pipe_correct_stats.
-
-  NOTE   : FPR=1.0 for several reduced-sensor models (S6-C, S4-C, S4-E, S2-D,
-            S2-F, S2-G, S1-E) is a genuine result, not a code error. Those sensor
-            subsets produce leak-like signatures even under no-leak conditions,
-            making the trained TCN unable to distinguish normal operation.
+Updates in this version:
+- adds the expanded per-model summary metrics used in the placement study
+- keeps pipe-only and pipe-plus-position scoring views side by side
+- uses the 0.25 position tolerance adopted for the placement comparison runs
 """
 
 import os
@@ -49,21 +20,18 @@ import torch
 import torch.nn as nn
 
 
-# ============================================================
-# USER SETTINGS (EDIT THESE ONLY)
-# ============================================================
+# USER SETTINGS 
 
 TEST_RESULTS_DIR      = Path("test_data_results")
 TRAINED_MODELS_DIR    = Path("trained_models")
 SENSOR_PLACEMENTS_CSV = Path("sensor_placements.csv")
 OUTPUT_ROOT           = Path("sensor_placement_results")
-POS_TOL               = 0.25   # FIX 5: changed from 0.10 to 0.25 (WASA-confirmed threshold)
+POS_TOL               = 0.25   # (WASA-confirmed threshold)
 DEVICE                = "cuda" if torch.cuda.is_available() else "cpu"
 SAVE_PER_SCENARIO_PREDICTIONS = False
 
-# ============================================================
-# MODEL (must match training)
-# ============================================================
+# MODEL 
+
 MAX_LEAKS     = 3
 NUM_PIPES     = 5
 PIPE_NONE_IDX = NUM_PIPES
@@ -95,9 +63,7 @@ class MultiLeakTCN(nn.Module):
         return count_logits, pipe_logits, size_logits, pos_pred
 
 
-# ============================================================
 # Helpers
-# ============================================================
 
 def safe_float(x, default=np.nan):
     try:    return float(x)
@@ -141,9 +107,7 @@ def list_scn_dirs(results_dir):
     )
 
 
-# ============================================================
 # Prediction
-# ============================================================
 
 def predict_from_signals_df(signals, model, feature_cols, mu, sigma, window, stride, device="cpu"):
     missing = [c for c in feature_cols if c not in signals.columns]
@@ -189,9 +153,7 @@ def predict_from_signals_df(signals, model, feature_cols, mu, sigma, window, str
             "num_windows": int(X_batch.shape[0])}
 
 
-# ============================================================
 # Matching
-# ============================================================
 
 def match_pipes_only(true_leaks, pred_leaks):
     """Greedy pipe-ID-only matching. Used for pipe identification F1."""
@@ -248,11 +210,8 @@ def match_correct_pipe_any_pos(true_leaks, pred_leaks):
             pos_pairs.append((t_pos, best_pred_pos, t_pipe))  # FIX 4
     return TP, len(pred_leaks) - TP, len(true_leaks) - TP, pos_errors, pos_pairs
 
+# Count classification and pipe macro F1 helpers
 
-# ============================================================
-# FIX 2 + FIX 3: Count classification and pipe macro F1 helpers
-# (ported from evaluate_model.py for consistency)
-# ============================================================
 
 def compute_count_classification_metrics(true_counts, pred_counts):
     """Per-class precision/recall/F1, macro F1, micro F1, accuracy. (FIX 3)"""
@@ -296,7 +255,7 @@ def compute_count_classification_metrics(true_counts, pred_counts):
 
 def compute_pipe_macro_f1(pipe_stats):
     """
-    Macro F1 averaged equally over all five pipes. (FIX 2)
+    Macro F1 averaged equally over all five pipes.
     Used for pipe-only identification (no position threshold).
     """
     f1_scores, total_tp, total_fp, total_fn = [], 0, 0, 0
@@ -311,14 +270,7 @@ def compute_pipe_macro_f1(pipe_stats):
 
 
 def compute_pipe_pos_tol_macro_f1(pipe_stats):
-    """
-    FIX 6: Pipe+position macro F1 averaged equally over all five pipes.
-    Uses pipe_tol_stats, where a match requires both correct pipe identification
-    AND position error within POS_TOL (0.25 normalised pipe length).
-    This is the primary ranking criterion for sensor configuration comparison
-    in Section X.3.2.
-    Micro F1 also returned for supplementary comparison.
-    """
+
     f1_scores, total_tp, total_fp, total_fn = [], 0, 0, 0
     for pid in range(1, NUM_PIPES + 1):
         tp, fp, fn = pipe_stats[pid]["tp"], pipe_stats[pid]["fp"], pipe_stats[pid]["fn"]
@@ -341,9 +293,9 @@ def compute_pipe_exact_match(per_rows):
             "n_leak_scenarios": len(leak_rows)}
 
 
-# ============================================================
-# FIX 4: Regression metrics (RMSE, R2)
-# ============================================================
+
+# Regression metrics (RMSE, R2)
+
 
 def compute_regression_metrics(pos_pairs):
     """Overall MAE, RMSE, R2 from (true_pos, pred_pos, pipe_id) tuples."""
@@ -384,9 +336,7 @@ def compute_per_pipe_regression_metrics(pos_pairs):
     return pd.DataFrame(rows)
 
 
-# ============================================================
-# Per-pipe stats helpers (unchanged from original)
-# ============================================================
+# Per-pipe stats helpers 
 
 def init_pipe_stats():
     return {pid: {"tp": 0, "fp": 0, "fn": 0, "pos_errors": [],
@@ -516,9 +466,8 @@ def pipe_confusion_df(pipe_stats):
     return pd.DataFrame(rows)
 
 
-# ============================================================
 # Summary builder
-# ============================================================
+
 
 def summarize_per_scenario(per_rows):
     if not per_rows:
@@ -555,9 +504,7 @@ def summarize_per_scenario(per_rows):
     return out
 
 
-# ============================================================
 # Main
-# ============================================================
 
 def main():
     for p in [TEST_RESULTS_DIR, TRAINED_MODELS_DIR, SENSOR_PLACEMENTS_CSV]:
@@ -608,11 +555,9 @@ def main():
         pipe_correct_stats = init_pipe_stats()   # pipe-only, any position
         pipe_tol_stats     = init_pipe_stats()   # pipe + position within POS_TOL
 
-        # FIX 3: collectors for count classification
         all_true_counts = []
         all_pred_counts = []
 
-        # FIX 4: collector for regression metrics
         all_pos_pairs = []
 
         for scn_dir in scn_dirs:
@@ -631,21 +576,17 @@ def main():
             pred_leaks = pred["predicted_leaks"]
             pred_count = int(pred["predicted_leak_count"])
 
-            # FIX 3: accumulate counts
             all_true_counts.append(true_count)
             all_pred_counts.append(pred_count)
 
-            # Pipe-only matching (FIX 1)
             tp_pipe, fp_pipe, fn_pipe = match_pipes_only(true_leaks, pred_leaks)
             p_pipe, r_pipe, f1_pipe   = prf(tp_pipe, fp_pipe, fn_pipe)
 
-            # Correct pipe, any position — for MAE and pos_pairs (FIX 4)
             tp_cp, fp_cp, fn_cp, pos_errs_cp, scn_pos_pairs = match_correct_pipe_any_pos(
                 true_leaks, pred_leaks)
             pos_mae_cp = float(np.mean(pos_errs_cp)) if pos_errs_cp else np.nan
-            all_pos_pairs.extend(scn_pos_pairs)  # FIX 4
+            all_pos_pairs.extend(scn_pos_pairs)  
 
-            # Tolerance-based (FIX 5: now uses POS_TOL=0.25)
             tp_tol, fp_tol, fn_tol, pos_errs_tol = match_pipe_and_pos_with_tol(
                 true_leaks, pred_leaks, POS_TOL)
             p_tol, r_tol, f1_tol = prf(tp_tol, fp_tol, fn_tol)
@@ -703,7 +644,7 @@ def main():
                     "predicted_leaks":     pred_leaks,
                 }, indent=2), encoding="utf-8")
 
-        # Convenience: all output filenames are prefixed with model_name
+        # All output filenames are prefixed with model_name
         # e.g. S8-A_per_scenario_metrics.csv, S8-A_pipe_identification_summary.json
         def mf(name):
             """Return model_eval_dir / '{model_name}_{name}'."""
@@ -752,8 +693,7 @@ def main():
             })
         pd.DataFrame(misclassification_rows).sort_values("scn_number").to_csv(
             mf("pipe_misclassification_log.csv"), index=False)
-
-        # FIX 3: Count classification outputs
+        
         count_per_class_df, count_summary, count_conf_raw, count_conf_norm = \
             compute_count_classification_metrics(all_true_counts, all_pred_counts)
         count_per_class_df.to_csv(mf("count_classification_per_class.csv"), index=False)
@@ -768,14 +708,12 @@ def main():
                      columns=[f"pred_{c}" for c in range(4)]
                      ).to_csv(mf("count_confusion_matrix_normalised.csv"))
 
-        # FIX 2: Pipe-only macro F1 and exact match
         pipe_macro_dict = compute_pipe_macro_f1(pipe_correct_stats)
         pipe_exact_dict = compute_pipe_exact_match(per_rows)
         pipe_id_summary = {**pipe_macro_dict, **pipe_exact_dict}
         mf("pipe_identification_summary.json").write_text(
             json.dumps(pipe_id_summary, indent=2), encoding="utf-8")
 
-        # FIX 6: Pipe+position tolerance macro F1
         pipe_pos_tol_macro_dict = compute_pipe_pos_tol_macro_f1(pipe_tol_stats)
         mf("pipe_pos_tol_macro_f1_summary.json").write_text(
             json.dumps({
@@ -783,7 +721,6 @@ def main():
                 "pos_tol_used": float(POS_TOL)
             }, indent=2), encoding="utf-8")
 
-        # FIX 4: Regression outputs
         overall_regression  = compute_regression_metrics(all_pos_pairs)
         per_pipe_regression = compute_per_pipe_regression_metrics(all_pos_pairs)
         mf("position_regression_summary.json").write_text(
@@ -806,15 +743,15 @@ def main():
             "placement_strategy":  str(row.get("placement_strategy", "")),
             "configuration":       str(row.get("configuration", "")),
             "fitness":             row.get("fitness", ""),
-            # FIX 2: pipe-only macro F1
+            
             "pipe_macro_f1":       pipe_macro_dict["pipe_macro_f1"],
-            # FIX 6: pipe+position macro F1 (primary ranking criterion for X.3.2)
+            
             "pipe_pos_tol_macro_f1": pipe_pos_tol_macro_dict["pipe_pos_tol_macro_f1"],
             "pipe_pos_tol_micro_f1": pipe_pos_tol_macro_dict["pipe_pos_tol_micro_f1"],
-            # FIX 3: count classification
+            
             "count_macro_f1":      count_summary["macro_f1"],
             "count_accuracy":      count_summary["accuracy"],
-            # FIX 4: full position metrics
+            
             "position_rmse":       overall_regression["rmse"],
             "position_r2":         overall_regression["r2"],
             "pos_tol_used":        float(POS_TOL),

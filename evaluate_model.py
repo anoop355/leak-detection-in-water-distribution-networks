@@ -1,3 +1,10 @@
+"""
+Updates in this version:
+- loads a saved multi-leak TCN bundle from disk
+- runs sliding-window inference over evaluation scenarios
+- aggregates per-window predictions into scenario-level outputs
+"""
+
 import os
 import json
 import argparse
@@ -11,15 +18,14 @@ import torch
 import torch.nn as nn
 
 
-# ======================
-# Model (must match training)
-# ======================
+# Model definition
+
 MAX_LEAKS = 3
 NUM_PIPES = 5
-PIPE_NONE_IDX = NUM_PIPES         # 5  (0..4 are pipes 1..5, 5 means NONE)
-PIPE_CLASSES = NUM_PIPES + 1      # 6
+PIPE_NONE_IDX = NUM_PIPES         
+PIPE_CLASSES = NUM_PIPES + 1     
 
-# size head exists in bundle but we do NOT use it for output
+
 SIZE_CLASSES = 4
 
 
@@ -50,9 +56,8 @@ class MultiLeakTCN(nn.Module):
         return count_logits, pipe_logits, size_logits, pos_pred
 
 
-# ======================
 # Aggregation helpers
-# ======================
+
 def majority_vote(arr: np.ndarray, valid_mask: np.ndarray = None, default=None):
     if valid_mask is not None:
         arr = arr[valid_mask]
@@ -73,9 +78,8 @@ def clamp01(x: float) -> float:
     return max(0.0, min(1.0, float(x)))
 
 
-# ======================
 # Prediction for one signals.csv
-# ======================
+
 def predict_from_signals_df(
     signals: pd.DataFrame,
     model: nn.Module,
@@ -140,9 +144,8 @@ def predict_from_signals_df(
     }
 
 
-# ======================
 # Matching & metrics
-# ======================
+
 def match_leaks_pipe_and_pos(true_leaks: List[Dict], pred_leaks: List[Dict], pos_tol: float):
     """
     Tolerance-based matching: pipe must match AND position error <= pos_tol.
@@ -189,7 +192,6 @@ def match_leaks_pipe_and_pos_no_tol(true_leaks: List[Dict], pred_leaks: List[Dic
     """
     used_pred = set()
     pos_errors = []
-    # NEW: also collect raw true/pred position pairs for RMSE and R2
     pos_pairs = []   # list of (true_pos, pred_pos, pipe_id)
     TP = 0
 
@@ -254,20 +256,10 @@ def prf(tp: int, fp: int, fn: int):
     return precision, recall, f1
 
 
-# ======================
-# NEW: Count classification metrics (X.2.1)
-# ======================
+#Count classification metrics (X.2.1)
+
 def compute_count_classification_metrics(true_counts: List[int], pred_counts: List[int]):
-    """
-    Computes per-class precision, recall, F1, and support for leak count classification.
-    Also computes macro F1, micro F1, and overall accuracy.
-    Classes are 0, 1, 2, 3 (number of leaks).
-    Returns:
-        per_class_df : DataFrame with one row per class
-        summary      : dict with macro_f1, micro_f1, accuracy
-        conf_matrix  : 4x4 numpy array (rows=true, cols=pred), raw counts
-        conf_matrix_norm : 4x4 numpy array normalised by row (true class totals)
-    """
+
     classes = [0, 1, 2, 3]
     true_arr = np.array(true_counts, dtype=int)
     pred_arr = np.array(pred_counts, dtype=int)
@@ -405,9 +397,8 @@ def compute_pipe_confusion_normalised(pipe_stats: Dict) -> np.ndarray:
     return norm
 
 
-# ======================
-# NEW: Regression metrics - RMSE and R2 (X.2.3)
-# ======================
+# Regression metrics - RMSE and R2 
+
 def compute_regression_metrics(pos_pairs: List[Tuple]) -> Dict:
     """
     Computes overall MAE, RMSE, and R2 from a list of (true_pos, pred_pos, pipe_id) tuples.
@@ -479,9 +470,9 @@ def compute_per_pipe_regression_metrics(pos_pairs: List[Tuple]) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-# ======================
-# Per-pipe stats helpers (unchanged)
-# ======================
+
+# Per-pipe stats helpers 
+
 def init_pipe_stats():
     stats = {}
     for pid in range(1, NUM_PIPES + 1):
@@ -610,9 +601,8 @@ def pipe_confusion_df(pipe_stats):
     return pd.DataFrame(rows)
 
 
-# ======================
 # Main evaluation
-# ======================
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--results_dir", type=str, default="test_data_results",
@@ -659,7 +649,6 @@ def main():
     pipe_only_stats = init_pipe_stats()
     pipe_pos_stats  = init_pipe_stats()
 
-    # NEW: collectors for X.2.1 count classification and X.2.3 regression
     all_true_counts = []
     all_pred_counts = []
     all_pos_pairs   = []   # (true_pos, pred_pos, pipe_id) across all scenarios
@@ -755,9 +744,9 @@ def main():
     per_csv = out_dir / "per_scenario_metrics.csv"
     per_df.to_csv(per_csv, index=False)
 
-    # ======================
-    # NEW: X.2.1 — Count classification metrics
-    # ======================
+  
+    # Count classification metrics
+   
     count_per_class_df, count_summary, count_conf_raw, count_conf_norm = \
         compute_count_classification_metrics(all_true_counts, all_pred_counts)
 
@@ -786,9 +775,8 @@ def main():
     count_conf_norm_path = out_dir / "count_confusion_matrix_normalised.csv"
     count_conf_norm_df.to_csv(count_conf_norm_path)
 
-    # ======================
-    # NEW: X.2.2 — Pipe macro F1, exact match accuracy, normalised confusion matrix
-    # ======================
+    # Pipe macro F1, exact match accuracy, normalised confusion matrix
+    
     pipe_macro_f1_dict = compute_pipe_macro_f1(pipe_only_stats)
     pipe_exact_match_dict = compute_pipe_exact_match(per_rows)
 
@@ -807,9 +795,8 @@ def main():
     pipe_conf_norm_path = out_dir / "pipe_confusion_matrix_normalised.csv"
     pipe_conf_norm_df.to_csv(pipe_conf_norm_path)
 
-    # ======================
-    # NEW: X.2.3 — Regression metrics (RMSE, R2) and scatter plot data
-    # ======================
+    # Regression metrics (RMSE, R2) and scatter plot data
+    
     overall_regression = compute_regression_metrics(all_pos_pairs)
     per_pipe_regression_df = compute_per_pipe_regression_metrics(all_pos_pairs)
 
@@ -831,9 +818,9 @@ def main():
     scatter_path = out_dir / "position_scatter_data.csv"
     scatter_df.to_csv(scatter_path, index=False)
 
-    # ======================
-    # Existing summary (unchanged, micro metrics retained for comparison)
-    # ======================
+
+    # Existing summary 
+    
     def summarize(rows: List[Dict]) -> Dict:
         if len(rows) == 0:
             return {}
@@ -893,9 +880,8 @@ def main():
     bycount_csv = out_dir / "summary_by_true_count.csv"
     bycount_df.to_csv(bycount_csv, index=False)
 
-    # ======================
-    # Existing per-pipe CSV outputs (unchanged)
-    # ======================
+    # Existing per-pipe CSV outputs 
+    
     pipe_only_df = pipe_prf_df(pipe_only_stats)
     pipe_pos_df  = pipe_prf_df(pipe_pos_stats)
     pos_err_df   = pipe_pos_error_df(pipe_pos_stats)
@@ -914,9 +900,9 @@ def main():
     conf_only_df.to_csv(conf_only_path, index=False)
     conf_pos_df.to_csv(conf_pos_path, index=False)
 
-    # ======================
+
     # Print summary
-    # ======================
+
     print(f"[OK] Saved per-scenario metrics         : {per_csv}")
     print(f"[OK] Saved overall summary              : {out_dir / 'overall_summary.json'}")
     print(f"[OK] Saved summary by true leak count   : {bycount_csv}")

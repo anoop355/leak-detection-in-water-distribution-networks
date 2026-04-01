@@ -1,10 +1,8 @@
 """
-evaluate_stgcn_model.py
-------------------------
-Evaluates a trained MultiTaskSTGCN bundle against test scenarios.
-Runs sliding-window inference per scenario, aggregates predictions
-via majority vote, and writes per-scenario and summary metrics to CSV/JSON.
-Paths and position tolerance are set via argparse flags.
+Updates in this version:
+- loads a trained ST-GCN bundle from disk
+- runs windowed evaluation over the selected test scenarios
+- aggregates predictions into per-scenario and summary outputs
 """
 
 import os

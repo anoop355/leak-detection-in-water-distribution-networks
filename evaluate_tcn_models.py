@@ -1,25 +1,8 @@
 """
-multi_model_evaluate.py
-
-Evaluates ALL trained TCN bundles listed in sensor_placements.csv, one-by-one,
-on the SAME test dataset, and saves per-model outputs into:
-
-  sensor_placement_outputs/<model_name>/evaluation/
-
-It also creates a global comparison file:
-
-  sensor_placement_outputs/all_models_summary.csv
-
-Key change vs your older evaluator:
-- Computes localization error WITHOUT tolerance gating:
-    "MAE on correct pipe" = |pos_pred - pos_true| for matches where pipe_id is correct,
-    regardless of whether the error is <= pos_tol.
-
-It still keeps the pos_tol-based "localized correctly" metrics as OPTIONAL additional info.
-
-------------------------------------------------------------
-YOU ONLY NEED TO EDIT THE SETTINGS SECTION BELOW.
-------------------------------------------------------------
+Updates in this version:
+- runs every tracked TCN bundle listed in `sensor_placements.csv`
+- writes per-model outputs and a combined summary table
+- keeps both pipe-only and tolerance-based localisation metrics for comparison
 """
 
 import os
@@ -34,37 +17,32 @@ import torch
 import torch.nn as nn
 
 
-# ============================================================
-# USER SETTINGS (EDIT THESE ONLY)
-# ============================================================
+# User settings
 
-# Test dataset folder containing scn_* folders with signals.csv and labels.json
+# Test dataset folder containing `scn_*` folders with `signals.csv` and `labels.json`.
 TEST_RESULTS_DIR = Path("test_data_results")
 
-# Folder containing model subfolders:
-#   trained_models/<model_name>/multileak_tcn_bundle_<model_name>.pt
+# Folder containing model subfolders.
 TRAINED_MODELS_DIR = Path("trained_models")
 
-# CSV describing each trained model and its sensor configuration
-# (your table: model_name, k_budget, placement_strategy, configuration, fitness, ...)
+# CSV describing each trained model and its sensor configuration.
 SENSOR_PLACEMENTS_CSV = Path("sensor_placements.csv")
 
-# Where to save all evaluation outputs
+# Output folder for the comparison run.
 OUTPUT_ROOT = Path("sensor_placement_outputs")
 
-# Position tolerance for "localized correctly" (pipe + position within tolerance)
-# This is used ONLY for the tolerance-based metrics (not for "MAE on correct pipe").
+# Position tolerance for the tolerance-based localisation metrics.
 POS_TOL = 0.10
 
-# Device: "cpu" or "cuda"
+# Runtime device.
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
-# If True, saves per-scenario prediction.json inside each scn folder (audit)
+# When enabled, saves per-scenario predictions for later inspection.
 SAVE_PER_SCENARIO_PREDICTIONS = False
 
-# ============================================================
-# MODEL (must match training)
-# ============================================================
+
+# MODEL 
+
 MAX_LEAKS = 3
 NUM_PIPES = 5
 PIPE_NONE_IDX = NUM_PIPES         # 5  (0..4 are pipes 1..5, 5 means NONE)
@@ -99,9 +77,7 @@ class MultiLeakTCN(nn.Module):
         return count_logits, pipe_logits, size_logits, pos_pred
 
 
-# ============================================================
 # Helpers
-# ============================================================
 
 def safe_float(x, default=np.nan):
     try:
@@ -155,9 +131,7 @@ def list_scn_dirs(results_dir: Path) -> List[Path]:
     )
 
 
-# ============================================================
 # Prediction for one signals.csv
-# ============================================================
 
 def predict_from_signals_df(
     signals: pd.DataFrame,
@@ -224,9 +198,7 @@ def predict_from_signals_df(
     }
 
 
-# ============================================================
 # Matching for metrics
-# ============================================================
 
 def match_pipes_only(true_leaks: List[Dict], pred_leaks: List[Dict]) -> Tuple[int, int, int]:
     true_pipes = [safe_int(l.get("pipe_id", -1)) for l in true_leaks]
@@ -249,10 +221,7 @@ def match_pipes_only(true_leaks: List[Dict], pred_leaks: List[Dict]) -> Tuple[in
 
 
 def match_pipe_and_pos_with_tol(true_leaks: List[Dict], pred_leaks: List[Dict], pos_tol: float):
-    """
-    Pipe must match AND |pos_pred-pos_true| <= pos_tol.
-    One-to-one greedy matching by smallest position error.
-    """
+  
     used_pred = set()
     pos_errors = []
     TP = 0
@@ -288,12 +257,7 @@ def match_pipe_and_pos_with_tol(true_leaks: List[Dict], pred_leaks: List[Dict], 
 
 
 def match_correct_pipe_any_pos(true_leaks: List[Dict], pred_leaks: List[Dict]):
-    """
-    Pipe must match, position can be ANYTHING.
-    Returns:
-      TP, FP, FN, pos_errors_for_correct_pipe_matches
-    One-to-one greedy matching by smallest abs position error, but only among same-pipe candidates.
-    """
+   
     used_pred = set()
     pos_errors = []
     TP = 0
@@ -327,9 +291,7 @@ def match_correct_pipe_any_pos(true_leaks: List[Dict], pred_leaks: List[Dict]):
     return TP, FP, FN, pos_errors
 
 
-# ============================================================
 # Per-pipe stats
-# ============================================================
 
 def init_pipe_stats():
     stats = {}
@@ -343,20 +305,14 @@ def init_pipe_stats():
 
 
 def update_pipe_stats_correct_pipe_any_pos(pipe_stats, true_leaks, pred_leaks):
-    """
-    Updates per-pipe TP/FP/FN + per-pipe pos_errors (only for correct pipe matches).
-    Confusion uses a simple greedy assignment:
-      - if correct-pipe match exists -> use it
-      - otherwise, match remaining preds to remaining truths by smallest abs pos error
-        to produce a sensible true->pred confusion count (instead of an inflated cross-product).
-    """
+  
     true_list = [(safe_int(l.get("pipe_id", -1)), safe_float(l.get("position", np.nan))) for l in true_leaks]
     pred_list = [(safe_int(l.get("pipe_id", -1)), safe_float(l.get("position", np.nan))) for l in pred_leaks]
 
     used_pred = set()
     matched_pairs = []  # (t_idx, p_idx)
 
-    # 1) First, match by same pipe with smallest position error
+    # 1) match by same pipe with smallest position error
     for ti, (t_pipe, t_pos) in enumerate(true_list):
         best = None
         best_err = None
@@ -376,7 +332,7 @@ def update_pipe_stats_correct_pipe_any_pos(pipe_stats, true_leaks, pred_leaks):
             pipe_stats[t_pipe]["tp"] += 1
             pipe_stats[t_pipe]["pos_errors"].append(float(best_err))
 
-    # 2) Remaining truths -> FN initially (may be “explained” by confusion matching below)
+    # 2) Remaining truths -> FN initially
     matched_true = {ti for ti, _ in matched_pairs}
     unmatched_true = [ti for ti in range(len(true_list)) if ti not in matched_true]
 
@@ -395,8 +351,6 @@ def update_pipe_stats_correct_pipe_any_pos(pipe_stats, true_leaks, pred_leaks):
             pipe_stats[p_pipe]["fp"] += 1
 
     # 4) Confusion: build a greedy assignment between remaining truths and remaining preds
-    # by smallest abs position error (ignoring pipe equality), so confusion is meaningful.
-    # If there are no remaining preds, those truths just won't add a confusion entry.
     conf_pairs = matched_pairs.copy()
 
     if unmatched_true and unmatched_pred:
@@ -429,10 +383,7 @@ def update_pipe_stats_correct_pipe_any_pos(pipe_stats, true_leaks, pred_leaks):
 
 
 def update_pipe_stats_pipe_pos_tol(pipe_stats, true_leaks, pred_leaks, pos_tol: float):
-    """
-    Per-pipe TP/FP/FN + pos_errors ONLY when (pipe matches AND pos error <= tol).
-    Confusion uses the same logic as above but for tol-matched TP.
-    """
+  
     true_list = [(safe_int(l.get("pipe_id", -1)), safe_float(l.get("position", np.nan))) for l in true_leaks]
     pred_list = [(safe_int(l.get("pipe_id", -1)), safe_float(l.get("position", np.nan))) for l in pred_leaks]
 
@@ -473,7 +424,7 @@ def update_pipe_stats_pipe_pos_tol(pipe_stats, true_leaks, pred_leaks, pos_tol: 
         if 1 <= p_pipe <= NUM_PIPES:
             pipe_stats[p_pipe]["fp"] += 1
 
-    # Confusion (greedy on remaining by abs position error)
+    # Confusion
     conf_pairs = matched_pairs.copy()
     if unmatched_true and unmatched_pred:
         candidates = []
@@ -544,9 +495,7 @@ def pipe_confusion_df(pipe_stats):
     return pd.DataFrame(rows)
 
 
-# ============================================================
 # Summaries
-# ============================================================
 
 def summarize_per_scenario(per_rows: List[Dict]) -> Dict:
     if not per_rows:
@@ -607,9 +556,7 @@ def summarize_per_scenario(per_rows: List[Dict]) -> Dict:
     return out
 
 
-# ============================================================
 # Main evaluation loop (ALL MODELS)
-# ============================================================
 
 def main():
     # -------- Validate paths --------
@@ -640,7 +587,6 @@ def main():
 
     all_models_summary_rows = []
 
-    # Optional: store per-pipe merged summary across all models
     all_models_per_pipe_rows = []
 
     # -------- Loop through every model --------
@@ -677,7 +623,7 @@ def main():
         by_true_count = {0: [], 1: [], 2: [], 3: []}
 
         # Per-pipe stats:
-        # 1) correct-pipe-any-pos (what you want for MAE without tolerance)
+        # 1) correct-pipe-any-pos 
         pipe_correct_stats = init_pipe_stats()
         # 2) pipe+pos within tolerance
         pipe_tol_stats = init_pipe_stats()

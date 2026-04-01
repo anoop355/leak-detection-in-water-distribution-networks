@@ -1,3 +1,10 @@
+"""
+Updates in this version:
+- retains the three-slot multi-leak target format
+- keeps the `training_cases_output` workflow used during intermediate tests
+- preserves the shared TCN backbone used before the later final revision
+"""
+
 import os
 import json
 import random
@@ -12,10 +19,10 @@ from torch.utils.data import Dataset, DataLoader
 from sklearn.metrics import confusion_matrix, accuracy_score
 
 
-# ======================
+
 # CONFIG
-# ======================
-DATASET_ROOT = "training_cases_output"   # change if needed
+
+DATASET_ROOT = "training_cases_output"   
 FEATURE_COLS = ["P2","P3","P4","P5","P6","Q1a","Q2a","Q3a","Q4a","Q5a"]
 
 WINDOW = 180
@@ -28,11 +35,11 @@ SEED = 42
 MAX_LEAKS = 3
 NUM_PIPES = 5
 
-# Pipe classes: 0..4 = pipes 1..5, 5 = NONE
+# Pipe classes: 0..4 map to pipes 1..5, and 5 marks an unused slot.
 PIPE_NONE_IDX = NUM_PIPES
 PIPE_CLASSES = NUM_PIPES + 1
 
-# Size classes: 0=S,1=M,2=L, 3=NONE
+# Size classes: 0=S, 1=M, 2=L, and 3 marks an unused slot.
 SIZE_TO_IDX = {"S": 0, "M": 1, "L": 2}
 SIZE_NONE_IDX = 3
 SIZE_CLASSES = 4
@@ -46,9 +53,8 @@ def set_seed(seed: int):
 set_seed(SEED)
 
 
-# ======================
 # DATA HELPERS
-# ======================
+
 def list_valid_scenario_folders(root: str):
     if not os.path.isdir(root):
         raise FileNotFoundError(f"Dataset root '{root}' not found.")
@@ -77,16 +83,7 @@ def compute_mu_sigma(folders):
 
 
 def encode_labels_from_json(labels: dict):
-    """
-    Converts your labels.json into fixed-size targets for MAX_LEAKS=3.
 
-    Returns:
-      leak_count: int in [0..3]
-      pipe_targets: (3,) long in [0..5] where 5=NONE
-      pos_targets:  (3,) float
-      size_targets: (3,) long in [0..3] where 3=NONE
-      slot_mask:    (3,) float 1.0 if slot is real leak else 0.0
-    """
     leaks = labels.get("leaks", [])
     leak_count = int(len(leaks))
 
@@ -159,9 +156,8 @@ class LeakDatasetMulti(Dataset):
         )
 
 
-# ======================
 # MODEL
-# ======================
+
 class MultiLeakTCN(nn.Module):
     """
     Shared TCN backbone + multi-head outputs:
@@ -203,9 +199,8 @@ class MultiLeakTCN(nn.Module):
         return count_logits, pipe_logits, size_logits, pos_pred
 
 
-# ======================
 # TRAIN / EVAL
-# ======================
+
 folders = list_valid_scenario_folders(DATASET_ROOT)
 if len(folders) == 0:
     raise FileNotFoundError(f"No scenario folders with signals.csv + labels.json found inside '{DATASET_ROOT}'.")
@@ -232,7 +227,7 @@ opt = torch.optim.Adam(model.parameters(), lr=LR)
 loss_count = nn.CrossEntropyLoss()
 loss_pipe  = nn.CrossEntropyLoss()
 loss_size  = nn.CrossEntropyLoss()
-loss_pos   = nn.SmoothL1Loss(reduction="none")  # we'll mask manually
+loss_pos   = nn.SmoothL1Loss(reduction="none") 
 
 
 for ep in range(EPOCHS):
@@ -254,8 +249,7 @@ for ep in range(EPOCHS):
         # 1) leak count loss
         Lc = loss_count(count_logits, leak_count)
 
-        # 2) pipe loss (includes NONE class in unused slots)
-        # flatten to (B*3, classes)
+        # 2) pipe loss 
         Lp = loss_pipe(
             pipe_logits.reshape(-1, PIPE_CLASSES),
             pipe_t.reshape(-1)
@@ -268,9 +262,9 @@ for ep in range(EPOCHS):
         )
 
         # 4) position loss only for real leak slots
-        # SmoothL1Loss gives (B,3), we mask and average safely
-        pos_err = loss_pos(pos_pred, pos_t)            # (B,3)
-        masked = pos_err * slot_mask                   # keep only real leaks
+        # SmoothL1Loss gives (B,3)
+        pos_err = loss_pos(pos_pred, pos_t)          
+        masked = pos_err * slot_mask                 
         denom = slot_mask.sum().clamp(min=1.0)
         Lr = masked.sum() / denom
 
@@ -283,9 +277,8 @@ for ep in range(EPOCHS):
     print(f"Epoch {ep+1}/{EPOCHS}, loss={total/len(train_loader):.4f}")
 
 
-# ======================
 # SAVE BUNDLE
-# ======================
+
 save_bundle = {
     "model_state_dict": model.state_dict(),
     "mu": mu,
@@ -303,9 +296,8 @@ torch.save(save_bundle, "multileak_tcn_bundle.pt")
 print("[OK] Saved multileak_tcn_bundle.pt")
 
 
-# ======================
 # TEST METRICS (basic)
-# ======================
+
 model.eval()
 
 count_true, count_pred = [], []
