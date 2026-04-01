@@ -1,0 +1,8 @@
+{
+  "accuracy": 0.919,
+  "macro_f1": 0.9352,
+  "micro_f1": 0.919,
+  "micro_precision": 0.919,
+  "micro_recall": 0.919,
+  "num_scenarios": 494
+}

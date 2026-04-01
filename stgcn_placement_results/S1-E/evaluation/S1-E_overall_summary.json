@@ -1,0 +1,32 @@
+{
+  "model_name": "S1-E",
+  "model_type": "stgcn_single_leak_v4",
+  "sensor_names": [
+    "Q3a"
+  ],
+  "n_sensors": 1,
+  "n_scenarios": 890,
+  "pos_tol": 0.25,
+  "detect_accuracy": 0.7427,
+  "detect_precision": 0.9796,
+  "detect_recall": 0.7429,
+  "detect_f1": 0.845,
+  "detect_tp": 624,
+  "detect_fp": 13,
+  "detect_fn": 216,
+  "detect_tn": 37,
+  "false_positive_rate_no_leak": 0.26,
+  "pipe_macro_f1": 0.2779,
+  "pipe_micro_f1": 0.326,
+  "pipe_exact_match_accuracy": 0.3286,
+  "pipe_exact_match_count": 276,
+  "n_leak_scenarios": 840,
+  "pos_mae": 0.19995,
+  "pos_rmse": 0.223732,
+  "pos_r2": -0.001117,
+  "pos_n_matched": 276,
+  "pipe_pos_tol_f1_micro": 0.1643,
+  "pipe_pos_tol_f1_macro": 0.1389,
+  "pipe_pos_tol_precision_micro": 0.1643,
+  "pipe_pos_tol_recall_micro": 0.1643
+}

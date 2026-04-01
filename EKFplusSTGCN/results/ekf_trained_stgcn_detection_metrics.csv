@@ -1,0 +1,2 @@
+accuracy,precision,recall,f1,tp,fp,fn,tn,specificity,n_total,n_leak,n_noleak
+0.8472,0.9835,0.8524,0.9133,716,12,124,38,0.76,890,840,50

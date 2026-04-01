@@ -1,0 +1,6 @@
+,pred_pipe_1,pred_pipe_2,pred_pipe_3,pred_pipe_4,pred_pipe_5
+true_pipe_1,0.8036,0.0,0.0,0.1964,0.0
+true_pipe_2,0.0238,0.8571,0.0,0.119,0.0
+true_pipe_3,0.0,0.0,0.5417,0.4583,0.0
+true_pipe_4,0.0,0.0,0.0179,0.9821,0.0
+true_pipe_5,0.0,0.0,0.0,0.0119,0.9881

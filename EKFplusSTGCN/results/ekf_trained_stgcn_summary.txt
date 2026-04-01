@@ -1,0 +1,57 @@
+=================================================================
+EKF-TRAINED ST-GCN  PIPELINE EVALUATION  (test_dataset, all)
+Model: stgcn_bundle_S10-A-EKF.pt  (trained on stgcn_dataset_ekf)
+=================================================================
+Total scenarios : 890  (0 failed/excluded)
+No-leak         : 50
+Leak            : 840
+
+--- Detection ---
+  Accuracy    : 0.8472
+  Precision   : 0.9835
+  Recall      : 0.8524
+  F1          : 0.9133
+  Specificity : 0.7600  (no-leak correctly rejected)
+  TP=716  FP=12  FN=124  TN=38
+
+  Confusion matrix (rows=true, cols=predicted):
+             pred_0   pred_1
+  true_0  :      38       12
+  true_1  :     124      716
+
+--- Pipe Localisation (among leak scenarios) ---
+  Pipe exact-match accuracy : 0.5845  (491/840)
+  Macro F1 (pipes 1-5)      : 0.5929
+
+  Pipe      TP    FP    FN     Prec      Rec       F1   Support
+  ----------------------------------------------------------
+  1        146     3    22   0.9799   0.8690   0.9211       168
+  2        141     1    27   0.9930   0.8393   0.9097       168
+  3        140   131    28   0.5166   0.8333   0.6378       168
+  4         47    70   121   0.4017   0.2798   0.3298       168
+  5         17    20   151   0.4595   0.1012   0.1659       168
+
+  Pipe confusion matrix (normalised by true pipe):
+             pred_1  pred_2  pred_3  pred_4  pred_5
+  true_1 :   0.936   0.006   0.058   0.000   0.000
+  true_2 :   0.019   0.916   0.006   0.058   0.000
+  true_3 :   0.000   0.000   0.933   0.040   0.027
+  true_4 :   0.000   0.000   0.508   0.367   0.125
+  true_5 :   0.000   0.000   0.438   0.430   0.133
+
+--- Position Regression (pipe-matched pairs) ---
+  MAE  : 0.152544
+  RMSE : 0.190993
+  R^2  : 0.256065
+  n    : 491
+
+--- Per-Group Summary ---
+  Group            n    DetAcc  n_leak   PipeAcc
+  ----------------------------------------------
+  no-leak         50    0.7600       0       N/A
+  pipe-1         168    0.9286     168     0.869
+  pipe-2         168    0.9167     168    0.8393
+  pipe-3         168    0.8929     168    0.8333
+  pipe-4         168    0.7619     168    0.2798
+  pipe-5         168    0.7619     168    0.1012
+  ALL            890    0.8472     840    0.5845

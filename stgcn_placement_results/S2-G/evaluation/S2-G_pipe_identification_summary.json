@@ -1,0 +1,7 @@
+{
+  "pipe_macro_f1": 0.341,
+  "pipe_micro_f1": 0.3559,
+  "pipe_exact_match_accuracy": 0.3595,
+  "pipe_exact_match_count": 302,
+  "n_leak_scenarios": 840
+}

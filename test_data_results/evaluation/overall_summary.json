@@ -1,0 +1,18 @@
+{
+  "num_scenarios": 494,
+  "exact_count_rate": 0.9190283400809717,
+  "mean_count_error": 0.08097165991902834,
+  "exact_match_rate": 0.708502024291498,
+  "pipe_only_precision_micro": 0.9690265486725663,
+  "pipe_only_recall_micro": 0.9605263157894737,
+  "pipe_only_f1_micro": 0.9647577092511014,
+  "pipe_pos_precision_micro": 0.8030973451327433,
+  "pipe_pos_recall_micro": 0.7960526315789473,
+  "pipe_pos_f1_micro": 0.7995594713656387,
+  "localization_mae_on_matched": 0.16170410385593778,
+  "false_positive_rate_no_leak": 0.0,
+  "position_tolerance": 0.25,
+  "window": 180,
+  "stride": 10,
+  "bundle": "multileak_tcn_bundleV6.pt"
+}

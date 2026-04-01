@@ -1,0 +1,33 @@
+{
+  "model_name": "S2-G",
+  "model_type": "stgcn_single_leak_v4",
+  "sensor_names": [
+    "Q1a",
+    "Q3a"
+  ],
+  "n_sensors": 2,
+  "n_scenarios": 890,
+  "pos_tol": 0.25,
+  "detect_accuracy": 0.9809,
+  "detect_precision": 0.9802,
+  "detect_recall": 1.0,
+  "detect_f1": 0.99,
+  "detect_tp": 840,
+  "detect_fp": 17,
+  "detect_fn": 0,
+  "detect_tn": 33,
+  "false_positive_rate_no_leak": 0.34,
+  "pipe_macro_f1": 0.341,
+  "pipe_micro_f1": 0.3559,
+  "pipe_exact_match_accuracy": 0.3595,
+  "pipe_exact_match_count": 302,
+  "n_leak_scenarios": 840,
+  "pos_mae": 0.200107,
+  "pos_rmse": 0.224277,
+  "pos_r2": -0.00604,
+  "pos_n_matched": 302,
+  "pipe_pos_tol_f1_micro": 0.1798,
+  "pipe_pos_tol_f1_macro": 0.1705,
+  "pipe_pos_tol_precision_micro": 0.1798,
+  "pipe_pos_tol_recall_micro": 0.1798
+}

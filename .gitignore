@@ -24,7 +24,9 @@ test_dataset/
 test_dataset_ekf/
 test_data_inp/
 test_data_inp2/
-test_data_results/
+test_data_results/*
+!test_data_results/evaluation/
+!test_data_results/evaluation/**
 test_data_results - Copy/
 test_data_results2/
 runs_sampling_study/
@@ -44,6 +46,8 @@ EPANET_Patterns/
 
 # Generated visualizations and diagnostics
 RESULTS/
+!EKFplusSTGCN/results/
+!EKFplusSTGCN/results/**
 diagnostics/
 autoencoder_reconstruction_plots/
 autoencoder_v2_reconstruction_plots/
@@ -55,19 +59,11 @@ saliency_outputs/
 sensor_placement_results/
 sensor_placement_results OLD/
 sensor_placement_results2/
-stgcn_placement_results/
 ekf_wdn_project/outputs/
 _pipeline_tmp/
-EKFplusSTGCN/results/
 EKFplusSTGCN/State Space Estimation/
-ekf_wdn_project/State Space Estimation/
-ekf_wdn_project/outputs_leak/
-ekf_wdn_project/outputs_subset/
-ekf_wdn_project/outputs_subset2/
-ekf_wdn_project/validation_outputs/
-ekf_wdn_project/validation_outputs_leak/
-ekf_wdn_project/measurements.csv
-ekf_wdn_project/truth_outputs/
+ekf_wdn_project/*
+!ekf_wdn_project/*.py
 EPANET_Patterns_Final/*.png
 
 # Local logs and scratch files
@@ -118,3 +114,28 @@ stgcn_bundle_v5_pipe_weight.pt
 stgcn_bundle_v6_shortpath_graph.pt
 stgcn_bundle_v7_first_diff.pt
 stgcn_regressor.pt
+Hanoi.inp
+Hanoi.net
+Hanoi_EPS.inp
+
+# Scrap model scripts kept locally but excluded from the public repo
+train_stgcn_autoencoder.py
+train_stgcn_autoencoder_v2.py
+train_stgcn_autoencoder_v3.py
+train_stgcn_regressor.py
+train_stgcn_v8.py
+train_stgtcn_detection_localisation.py
+train_stgtcn_detection_localisation2.py
+train_stgtcn_detection_localisation3.py
+train_stgtcn_detection_localisation4.py
+train_stgtcn_detection_localisation5.py
+train_stgtcn_detection_localisation6.py
+train_stgtcn_detection_localisation7.py
+evaluate_GCNTCN_model.py
+evaluate_single_leak.py
+evaluate_stgcn_autoencoder.py
+evaluate_stgcn_autoencoder_v2.py
+evaluate_stgcn_autoencoder_v3.py
+evaluate_stgcn_model_v2.py
+evaluate_stgcn_regressor.py
+evaluate_v3_focused.py
