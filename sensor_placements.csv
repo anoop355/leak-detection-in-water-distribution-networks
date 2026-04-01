@@ -1,0 +1,24 @@
+﻿model_name,k_budget,placement_strategy,configuration,fitness
+S10-A,10,full instrumentation baseline,"P2, P3, P4, P5, P6, Q1a, Q2a, Q3a, Q4a, Q5a",—
+S8-A,8,Coverage,"P2, P4, P5, P6, Q1a, Q2a, Q4a, Q5a",—
+S8-B,8,Clustered Upstream,"P2, P3, P4, P5, Q1a, Q2a, Q3a, Q4a",—
+S8-C,8,Clustered Downstream,"P3, P4, P5, P6, Q2a, Q3a, Q4a, Q5a",—
+S8-D,8,Utility-style anchored,"P2, P4, P5, P6, Q1a, Q2a, Q3a, Q5a",—
+S8-E,8,GA,"P2, P3, P5, P6, Q1a, Q2a, Q3a, Q4a",1.800702096
+S6-A,6,Coverage,"P2, P4, P5, Q1a, Q3a, Q5a",—
+S6-B,6,Clustered Upstream,"P2, P3, P4, Q1a, Q2a, Q3a",—
+S6-C,6,Clustered Downstream,"P4, P5, P6, Q3a, Q4a, Q5a",—
+S6-D,6,Utility-style anchored,"P2, P4, P6, Q1a, Q2a, Q5a",—
+S6-E,6,GA,"P2, P5, Q1a, Q2a, Q3a, Q4a",1.615415141
+S4-A,4,Coverage,"P2, P5, Q1a, Q3a",—
+S4-B,4,Clustered Upstream,"P2, P3, Q1a, Q2a",—
+S4-C,4,Clustered Downstream,"P5, P6, Q4a, Q5a",—
+S4-D,4,Utility-style anchored,"P4, P6, Q1a, Q3a",—
+S4-E,4,GA,"P5, Q1a, Q2a, Q3a",1.358620736
+S3-A,3,Utility-style anchored,"P4, P6, Q1a",
+S2-A,2,Coverage,"P2, Q4a",—
+S2-B,2,Clustered Upstream,"P2, Q1a",—
+S2-C,2,Clustered Downstream,"P4, Q4a",—
+S2-D,2,Utility-style anchored,"P4, Q1a",—
+S2-G,2,GA,"Q1a, Q3a",1.044583309
+S1-E,1,GA,Q3a,0.728753635

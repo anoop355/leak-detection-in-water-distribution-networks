@@ -1,0 +1,120 @@
+.venv/
+.vscode/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# OneDrive / Office artifacts
+~$*.xlsx
+
+# Temporary EPANET outputs
+temp.bin
+temp.rpt
+
+# Large generated datasets and experiment outputs
+training_cases/
+training_cases OLD/
+training_cases_output/
+training_cases_output OLD/
+stgcn_dataset/
+stgcn_dataset_v2/
+stgcn_dataset_ekf/
+test_dataset/
+test_dataset_ekf/
+test_data_inp/
+test_data_inp2/
+test_data_results/
+test_data_results - Copy/
+test_data_results2/
+runs_sampling_study/
+manual_output/
+new_cases/
+colab_upload/
+evaluation_baselineTCN_V1/
+evaluation_baselineTCN_V2/
+evaluation_baselineTCN_V6/
+GA Results/
+GA Results OLD/
+trained_models/
+trained_models OLD/
+Leak Count Detection Improvement/
+gcn_state_estimation/
+EPANET_Patterns/
+
+# Generated visualizations and diagnostics
+RESULTS/
+diagnostics/
+autoencoder_reconstruction_plots/
+autoencoder_v2_reconstruction_plots/
+autoencoder_v3_reconstruction_plots/
+stgcn_regressor_reconstruction_plots/
+ekf_focused_eval_plots/
+v3_focused_eval_plots/
+saliency_outputs/
+sensor_placement_results/
+sensor_placement_results OLD/
+sensor_placement_results2/
+stgcn_placement_results/
+ekf_wdn_project/outputs/
+_pipeline_tmp/
+EKFplusSTGCN/results/
+EKFplusSTGCN/State Space Estimation/
+ekf_wdn_project/State Space Estimation/
+ekf_wdn_project/outputs_leak/
+ekf_wdn_project/outputs_subset/
+ekf_wdn_project/outputs_subset2/
+ekf_wdn_project/validation_outputs/
+ekf_wdn_project/validation_outputs_leak/
+ekf_wdn_project/measurements.csv
+ekf_wdn_project/truth_outputs/
+EPANET_Patterns_Final/*.png
+
+# Local logs and scratch files
+FAILED_evaluate_model_log.txt
+*.log
+*.tmp
+
+# Root-level generated summaries, plots, and scratch artifacts
+all_models_summary.csv
+autoencoder_eval_results.csv
+autoencoder_v2_eval_results.csv
+autoencoder_v3_eval_results.csv
+ekf_focused_eval_results.csv
+pipeline_ekf_stgcn_results.csv
+pipeline_v3_stgcn_results.csv
+stgcn_autoencoder_v2_history.csv
+stgcn_regressor_eval_results.csv
+v3_focused_eval_results.csv
+base__prediction.json
+base__signals_wntr.csv
+comparison_scn00001_vs_scn01051.png
+comparison_scn00500_vs_scn01060.png
+Untitled.png
+Localisation_and_Detection_Testing.xlsx
+Physical comparison of data. .xlsx
+extract_manual_cases.txt
+predict_from_inp.txt
+temp.inp
+
+# Non-final root model bundles kept locally but excluded from the public repo
+leak_tcn_bundle.pt
+leak_tcn_v2_bundle.pt
+multileak_stgcn_bundle_v1.pt
+multileak_stgcn_bundle_v2.pt
+multileak_tcn_bundleV1.pt
+multileak_tcn_bundleV2.pt
+multileak_tcn_bundleV3.pt
+multileak_tcn_bundleV4.pt
+multileak_tcn_bundleV5.pt
+multitask_tcn_bundle.pt
+stgcn_autoencoder.pt
+stgcn_autoencoder_v2.pt
+stgcn_autoencoder_v3.pt
+stgcn_bundle_optionB_25ep.pt
+stgcn_bundle_v3.pt
+stgcn_bundle_v4_temporal_attn.pt
+stgcn_bundle_v5_pipe_weight.pt
+stgcn_bundle_v6_shortpath_graph.pt
+stgcn_bundle_v7_first_diff.pt
+stgcn_regressor.pt
