@@ -1,12 +1,6 @@
 """
-ekf_trained_stgcn_pipeline_eval.py
-====================================
 Evaluates stgcn_bundle_S10-A-EKF.pt on the test_dataset using the
-EKF reconstruction pipeline (3-channel features: raw, deviation, innovation).
-
-Usage:
-    python EKFplusSTGCN/ekf_trained_stgcn_pipeline_eval.py
-    python EKFplusSTGCN/ekf_trained_stgcn_pipeline_eval.py --workers 4
+EKF reconstruction pipeline.
 """
 
 from __future__ import annotations
