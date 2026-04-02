@@ -1,19 +1,11 @@
 """
-debug_s10a_softmax.py
-=====================
-Debugging script for S10-A STGCN model.
-
-Loads the S10-A bundle and runs inference on the 12 scenarios where
-true_pipe=1 was misclassified as pred_pipe=4.
-
-Outputs:
+1) Loads the S10-A bundle
+2) Runs inference on the 12 scenarios where true_pipe=1 was misclassified as pred_pipe=4.
+3) Outputs:
   - Raw pipe head logits
   - Softmax probabilities for each pipe class
   - Detect head softmax
   - Predicted vs. true labels
-
-Also saves results to:
-  stgcn_placement_results/S10-A/debug_pipe1_misclassified_softmax.csv
 """
 
 import json
@@ -24,11 +16,6 @@ import pandas as pd
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
-
-# ---------------------------------------------------------------------------
-# Settings
-# ---------------------------------------------------------------------------
 
 BUNDLE_PATH  = Path("stgcn_placement_bundles/stgcn_bundle_S10-A.pt")
 TEST_DIR     = Path("test_dataset/scenarios")
@@ -55,10 +42,7 @@ MISCLASSIFIED_SCENARIOS = [
     "scenario_00193",
 ]
 
-
-# ---------------------------------------------------------------------------
-# Model definitions (must match train_stgcn_sensor_placement.py)
-# ---------------------------------------------------------------------------
+# Model definitions
 
 class TemporalConvLayer(nn.Module):
     def __init__(self, in_ch, out_ch, kernel_size=5, dilation=1):
@@ -147,11 +131,7 @@ class SingleLeakSTGCNv4(nn.Module):
         z = self.temporal_pool(x)
         return (self.detect_head(z), self.pipe_head(z),
                 self.size_head(z), self.pos_head(z).squeeze(1))
-
-
-# ---------------------------------------------------------------------------
 # Helpers
-# ---------------------------------------------------------------------------
 
 def load_bundle(bundle_path: Path):
     bundle     = torch.load(str(bundle_path), map_location=DEVICE, weights_only=False)
@@ -184,10 +164,7 @@ def preprocess(raw: np.ndarray, baseline: np.ndarray,
     feats = (feats - mu[None]) / (sigma[None] + 1e-8)
     return torch.tensor(feats, dtype=torch.float32).unsqueeze(0)
 
-
-# ---------------------------------------------------------------------------
 # Main
-# ---------------------------------------------------------------------------
 
 def main():
     print(f"Device : {DEVICE}")
