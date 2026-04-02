@@ -1,19 +1,3 @@
-"""
-ekf_preprocess_test_dataset.py
-================================
-Preprocesses test_dataset through the EKF -> test_dataset_ekf/
-(mirrors ekf_preprocess_stgcn_dataset.py but uses test_dataset as source).
-
-Output per scenario (test_dataset_ekf/scenarios/scenario_XXXXX/):
-  data.csv   — t, P2..Q5a (actual monitored + EKF-reconstructed) + inn_P4, inn_Q1a, inn_Q3a
-  labels.json — copied from source
-
-Usage:
-    python EKFplusSTGCN/ekf_preprocess_test_dataset.py
-    python EKFplusSTGCN/ekf_preprocess_test_dataset.py --workers 4
-    python EKFplusSTGCN/ekf_preprocess_test_dataset.py --workers 4 --resume
-"""
-
 from __future__ import annotations
 
 import argparse
