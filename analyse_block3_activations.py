@@ -1,16 +1,8 @@
 """
-analyse_block3_activations.py
-==============================
 Extracts Block 3 (final ST-block before temporal pooling) node embeddings
 from the S10-A ST-GCN model and compares mean activation magnitudes between:
   - 24 misidentified Pipe 1 scenarios
-  - Correctly identified Pipe 1 scenarios (sampled to the same count)
-
-Usage
------
-    python analyse_block3_activations.py
-
-Outputs saved to: stgcn_placement_results/S10-A/block3_analysis/
+  - Correctly identified Pipe 1 scenarios
 """
 
 import json
@@ -25,9 +17,9 @@ import pandas as pd
 import torch
 import torch.nn as nn
 
-# ---------------------------------------------------------------------------
+
 # Paths
-# ---------------------------------------------------------------------------
+
 BUNDLE_PATH  = Path("stgcn_placement_bundles/stgcn_bundle_S10-A.pt")
 PER_SCEN_CSV = Path("stgcn_placement_results/S10-A/evaluation/S10-A_per_scenario_metrics.csv")
 TEST_ROOT    = Path("test_dataset/scenarios")
@@ -38,9 +30,7 @@ SEED = 42
 random.seed(SEED)
 torch.manual_seed(SEED)
 
-# ---------------------------------------------------------------------------
-# Model classes  (exact copies from train_stgcn_sensor_placement.py)
-# ---------------------------------------------------------------------------
+# Model classes
 
 class TemporalConvLayer(nn.Module):
     def __init__(self, in_ch, out_ch, kernel_size=5, dilation=1):
@@ -130,10 +120,8 @@ class SingleLeakSTGCN(nn.Module):
         return (self.detect_head(z), self.pipe_head(z),
                 self.size_head(z), self.pos_head(z).squeeze(1))
 
-
-# ---------------------------------------------------------------------------
 # Load bundle and build model
-# ---------------------------------------------------------------------------
+
 print("Loading bundle …")
 bundle = torch.load(BUNDLE_PATH, map_location="cpu", weights_only=False)
 
@@ -158,9 +146,8 @@ model.load_state_dict(bundle["model_state_dict"])
 model.eval()
 print(f"Model loaded  |  sensors={sensor_names}")
 
-# ---------------------------------------------------------------------------
-# Forward hook — captures block3 output
-# ---------------------------------------------------------------------------
+# Forward hook
+
 _hook_store: dict = {}
 
 def _block3_hook(module, input, output):
@@ -169,9 +156,8 @@ def _block3_hook(module, input, output):
 
 hook_handle = model.block3.register_forward_hook(_block3_hook)
 
-# ---------------------------------------------------------------------------
-# Preprocessing (identical to evaluate_single_leak.py for ST-GCN)
-# ---------------------------------------------------------------------------
+# Preprocessing 
+
 def preprocess(raw: np.ndarray) -> torch.Tensor:
     """raw: (T, N) → tensor (1, T, N, 2) normalised."""
     T = raw.shape[0]
@@ -189,10 +175,8 @@ def make_windows(raw: np.ndarray, win: int = 12, stride: int = 1):
         windows.append(raw[start: start + win])
     return windows
 
-
-# ---------------------------------------------------------------------------
 # Load per-scenario CSV and identify groups
-# ---------------------------------------------------------------------------
+
 df = pd.read_csv(PER_SCEN_CSV)
 
 miss_rows    = df[(df["true_pipe"] == 1) & (df["pred_pipe"] != 1) & (df["true_detect"] == 1)]
@@ -204,16 +188,10 @@ print(f"Correctly identified : {len(correct_rows)}  (will sample {len(miss_rows)
 # Sample correct to same size for a fair visual comparison
 correct_sample = correct_rows.sample(n=len(miss_rows), random_state=SEED)
 
-
-# ---------------------------------------------------------------------------
 # Run inference + hook extraction
-# ---------------------------------------------------------------------------
+
 def extract_node_activations(scenario_name: str) -> np.ndarray:
-    """
-    Load scenario data, slide windows, run each window through model,
-    accumulate block3 node activation magnitudes.
-    Returns: (N,) mean |activation| per node, averaged across all windows.
-    """
+
     data_path = TEST_ROOT / scenario_name / "data.csv"
     data = pd.read_csv(data_path)
     raw = data[sensor_names].values.astype(np.float32)   # (T_full, N)
@@ -250,9 +228,8 @@ correct_mean = np.stack(correct_activations).mean(axis=0) # (N,)
 
 hook_handle.remove()   # clean up
 
-# ---------------------------------------------------------------------------
 # Save numerical results
-# ---------------------------------------------------------------------------
+
 results_df = pd.DataFrame({
     "sensor":           sensor_names,
     "misidentified_mean": miss_mean,
@@ -263,9 +240,9 @@ results_df.to_csv(OUT_DIR / "node_activation_scores.csv", index=False)
 print("\nNode activation scores:")
 print(results_df.to_string(index=False))
 
-# ---------------------------------------------------------------------------
+
 # Plot grouped bar chart
-# ---------------------------------------------------------------------------
+
 x     = np.arange(num_nodes)
 width = 0.35
 
@@ -295,9 +272,6 @@ fig.savefig(plot_path, dpi=150)
 plt.close()
 print(f"\nPlot saved: {plot_path}")
 
-# ---------------------------------------------------------------------------
-# Also plot per-group activation profiles (each scenario as a thin line)
-# ---------------------------------------------------------------------------
 fig2, axes = plt.subplots(1, 2, figsize=(14, 4), sharey=True)
 for ax, activations, title, colour in [
     (axes[0], miss_activations,    "Misidentified Pipe 1 (n=24)",         "#e74c3c"),
