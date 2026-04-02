@@ -1,25 +1,12 @@
 """
-ekf_preprocess_stgcn_dataset.py
-=================================
 Preprocesses stgcn_dataset_v2 through the EKF:
   1. Feed monitored sensors [P4, Q1a, Q3a] to EKF
   2. Reconstruct unmonitored sensors [P2, P3, P5, P6, Q2a, Q4a, Q5a]
-  3. Capture EKF residuals (innovations) for [P4, Q1a, Q3a]
-  4. Save reconstructed data.csv + innovations + original labels.json
-     to stgcn_dataset_ekf/
+  3. Capture EKF residuals for [P4, Q1a, Q3a]
+  4. Save reconstructed data.csv 
 
 Output data.csv columns per scenario:
   t, P2, P3, P4, P5, P6, Q1a, Q2a, Q3a, Q4a, Q5a,
-  inn_P4, inn_Q1a, inn_Q3a    <- EKF measurement innovations
-
-The innovations encode the EKF's "surprise" at each monitored sensor —
-a physics-based leak signature used as the 3rd feature channel in
-train_stgcn_ekf.py (options 1 + 2 combined).
-
-Usage (from First_WDN/ or EKFplusSTGCN/):
-    python EKFplusSTGCN/ekf_preprocess_stgcn_dataset.py
-    python EKFplusSTGCN/ekf_preprocess_stgcn_dataset.py --workers 6
-    python EKFplusSTGCN/ekf_preprocess_stgcn_dataset.py --workers 6 --resume
 """
 
 from __future__ import annotations
