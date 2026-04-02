@@ -1,36 +1,10 @@
 """
-ekf_stgcn_pipeline_eval.py
-===========================
-Full pipeline evaluation: EKF reconstruction -> ST-GCN S10-A detection/localisation
-across all 890 test_dataset scenarios.
-
-Pipeline per scenario:
-  1. Feed [P4, Q1a, Q3a] to the EKF
-  2. EKF reconstructs [P2, P3, P5, P6, Q2a, Q4a, Q5a]
-  3. Combine reconstructed + actual monitored into full 10-sensor array
-  4. Build 2-channel STGCN features [raw, deviation_from_baseline]
-  5. ST-GCN S10-A predicts: detection (0/1), pipe (1-5 or none), size, position
-  6. Compare against scenario ground-truth labels
-
-Metrics (matching evaluate_stgcn_model1.py style):
-  Detection  : accuracy, precision, recall, F1, confusion matrix
-  Pipe       : per-pipe TP/FP/FN, precision, recall, F1, macro F1,
-               pipe exact-match accuracy, 5x5 pipe confusion matrix
-  Position   : MAE, RMSE, R^2 (on pipe-matched pairs, tolerance-free)
-  Per-scenario: scenario-level prediction table
-
-Outputs (EKFplusSTGCN/results/):
-  ekf_stgcn_per_scenario.csv
-  ekf_stgcn_detection_metrics.csv
-  ekf_stgcn_detection_confusion.csv
-  ekf_stgcn_pipe_metrics.csv
-  ekf_stgcn_pipe_confusion.csv
-  ekf_stgcn_position_metrics.csv
-  ekf_stgcn_summary.txt
-
-Usage (from EKFplusSTGCN/):
-    python ekf_stgcn_pipeline_eval.py              # single-threaded
-    python ekf_stgcn_pipeline_eval.py --workers 4  # parallel
+- Feed [P4, Q1a, Q3a] to the EKF
+- EKF reconstructs [P2, P3, P5, P6, Q2a, Q4a, Q5a]
+- Combine reconstructed + actual monitored into full 10-sensor array
+- Build 2-channel STGCN features [raw, deviation_from_baseline]
+- ST-GCN S10-A predicts: detection (0/1), pipe (1-5 or none), size, position
+- Compare against scenario ground-truth labels
 """
 
 from __future__ import annotations
