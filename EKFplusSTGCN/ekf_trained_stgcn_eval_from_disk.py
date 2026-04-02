@@ -1,14 +1,3 @@
-"""
-ekf_trained_stgcn_eval_from_disk.py
-=====================================
-Evaluates stgcn_bundle_S10-A-EKF.pt on pre-saved test_dataset_ekf scenarios.
-Loads EKF-reconstructed data.csv (with inn_* columns) directly from disk —
-no on-the-fly EKF required.
-
-Usage:
-    python EKFplusSTGCN/ekf_trained_stgcn_eval_from_disk.py
-"""
-
 from __future__ import annotations
 
 import json
