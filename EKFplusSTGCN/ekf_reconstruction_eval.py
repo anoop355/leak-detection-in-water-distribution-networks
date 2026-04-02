@@ -1,21 +1,8 @@
 """
-ekf_reconstruction_eval.py
-===========================
-Evaluates the EKF's ability to reconstruct 7 unmonitored sensors across all
-890 scenarios in test_dataset.
-
-For each scenario the 3 monitored sensors (P4, Q1a, Q3a) are fed to the EKF;
-it reconstructs [P2, P3, P5, P6, Q2a, Q4a, Q5a].  Reconstructed values are
-compared against the masked ground-truth columns.
-
-Outputs (written to EKFplusSTGCN/results/):
-  ekf_recon_per_scenario.csv   -- MAE / RMSE / R^2 per sensor per scenario
-  ekf_recon_summary_pipe.csv   -- grouped means by pipe (no-leak / pipe-1..5 / ALL)
-  ekf_recon_summary_sensor.csv -- overall mean per sensor
-
-Usage (from EKFplusSTGCN/):
-    python ekf_reconstruction_eval.py              # single-threaded
-    python ekf_reconstruction_eval.py --workers 4  # parallel
+- Evaluates ability to reconstruct 7 unmonitored sensors across in test_dataset.
+- 3 monitored sensors (P4, Q1a, Q3a) are fed to the EKF
+- It reconstructs [P2, P3, P5, P6, Q2a, Q4a, Q5a].  
+- Compare against the masked ground-truth columns.
 """
 
 from __future__ import annotations
