@@ -1,23 +1,3 @@
-"""
-run_ekf_focused_eval.py
-
-Focused EKF evaluation on 12 representative scenarios from test_dataset:
-  - 2 no-leak scenarios
-  - 2 leak scenarios per pipe (pipes 1-5) = 10 leak scenarios
-
-Metrics: MAE, RMSE, R^2 per scenario per unmonitored sensor.
-Summary: per-scenario table + grouped totals (no-leak, pipe-1..5).
-
-Placement: ekf_wdn_project/   (so existing module imports work without modification)
-
-Usage (from ekf_wdn_project/):
-    python run_ekf_focused_eval.py
-
-Outputs (written one level up, next to the autoencoder results):
-    ../ekf_focused_eval_results.csv
-    ../ekf_focused_eval_plots/
-"""
-
 from __future__ import annotations
 
 import json
@@ -33,7 +13,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-# ── ensure ekf_wdn_project modules are importable ────────────────────────────
 _HERE = Path(__file__).resolve().parent
 if str(_HERE) not in sys.path:
     sys.path.insert(0, str(_HERE))
@@ -44,14 +23,13 @@ from hydraulic_interface import HydraulicInterface
 from jacobians import numerical_jacobian
 from load_model import ModelMetadata, build_initial_state, extract_model_metadata
 
-# ── suppress noisy wntr / epanet logging ─────────────────────────────────────
+# suppress noisy wntr / epanet logging
 logging.basicConfig(level=logging.WARNING)
 logging.getLogger("wntr").setLevel(logging.ERROR)
 logging.getLogger("wntr.epanet.io").setLevel(logging.ERROR)
 
-# ─────────────────────────────────────────────────────────────────────────────
 # PATHS
-# ─────────────────────────────────────────────────────────────────────────────
+
 _PARENT      = _HERE.parent
 DATASET_ROOT = _PARENT / "test_dataset" / "scenarios"
 MANIFEST     = _PARENT / "test_dataset" / "manifests" / "manifest.csv"
@@ -71,10 +49,8 @@ FLOW_COL_MAP     = {"Q2a": "2a", "Q4a": "4a", "Q5a": "5a"}
 N_NOLEAK_PICK = 2
 N_LEAK_PICK   = 2   # per pipe
 
-
-# ─────────────────────────────────────────────────────────────────────────────
 # SCENARIO SELECTION
-# ─────────────────────────────────────────────────────────────────────────────
+
 def select_scenarios(manifest_path: Path, dataset_root: Path) -> list[dict]:
     """
     Pick N_NOLEAK_PICK no-leak + N_LEAK_PICK per pipe (1-5) scenarios.
@@ -115,10 +91,8 @@ def select_scenarios(manifest_path: Path, dataset_root: Path) -> list[dict]:
 
     return selected
 
-
-# ─────────────────────────────────────────────────────────────────────────────
 # EKF CONFIG
-# ─────────────────────────────────────────────────────────────────────────────
+
 def make_config() -> EstimatorConfig:
     return EstimatorConfig(
         inp_path=INP_PATH,
@@ -127,26 +101,15 @@ def make_config() -> EstimatorConfig:
         plots_dir=Path("_focused_tmp/plots"),
     )
 
-
-# ─────────────────────────────────────────────────────────────────────────────
 # CORE: run EKF on one scenario
-# ─────────────────────────────────────────────────────────────────────────────
+
 def run_ekf_scenario(
     measurements_df: pd.DataFrame,
     config: EstimatorConfig,
     metadata: ModelMetadata,
     hydraulic: HydraulicInterface,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """
-    Parameters
-    ----------
-    measurements_df : columns [timestamp_s, P4, Q1a, Q3a]
 
-    Returns
-    -------
-    node_pressures_df : columns [timestamp, 2, 3, 4, 5, 6, L1..L5]
-    pipe_flows_df     : columns [timestamp, 1a, 1b, 2a, ...]
-    """
     initial_snapshot  = hydraulic.simulate_snapshot(config.initial_demands, timestamp_seconds=0)
     initial_state     = build_initial_state(initial_snapshot.head_state_vector(metadata), config)
     measurement_noise = hydraulic.build_measurement_noise()
@@ -242,10 +205,8 @@ def run_ekf_scenario(
 
     return pd.DataFrame(node_pressure_rows), pd.DataFrame(pipe_flow_rows)
 
-
-# ─────────────────────────────────────────────────────────────────────────────
 # HELPERS
-# ─────────────────────────────────────────────────────────────────────────────
+
 def build_measurements_df(data: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame({
         "timestamp_s": data["t"].values * 60.0,
@@ -280,10 +241,8 @@ def compute_metrics(y_true: np.ndarray, y_pred: np.ndarray) -> tuple[float, floa
     r2   = r2_score(y_true, y_pred)
     return mae, rmse, r2
 
-
-# ─────────────────────────────────────────────────────────────────────────────
 # PLOTTING
-# ─────────────────────────────────────────────────────────────────────────────
+
 def plot_scenario(scenario_id: int, group: str,
                   actual: dict[str, np.ndarray],
                   recon: dict[str, np.ndarray],
@@ -310,10 +269,6 @@ def plot_scenario(scenario_id: int, group: str,
     plt.close(fig)
     return out
 
-
-# ─────────────────────────────────────────────────────────────────────────────
-# SUMMARY PRINTING
-# ─────────────────────────────────────────────────────────────────────────────
 def print_group_summary(group_name: str, rows: list[dict]) -> None:
     """Print mean MAE / RMSE / R^2 for a group of scenario result rows."""
     print(f"\n  Group: {group_name}  (n={len(rows)})")
@@ -328,10 +283,8 @@ def print_group_summary(group_name: str, rows: list[dict]) -> None:
     all_maes = [r[f"{s}_mae"] for r in rows for s in UNMONITORED]
     print(f"    {'OVERALL':<8}  {np.mean(all_maes):>10.4f}")
 
-
-# ─────────────────────────────────────────────────────────────────────────────
 # MAIN
-# ─────────────────────────────────────────────────────────────────────────────
+
 def main():
     if not INP_PATH.exists():
         raise FileNotFoundError(f"EPANET model not found: {INP_PATH}")
@@ -394,12 +347,10 @@ def main():
         out = plot_scenario(scn_id, group, actual, recon, PLOT_DIR)
         print(f"  Plot -> {out}")
 
-    # ── Save CSV ──────────────────────────────────────────────────────────────
     eval_df = pd.DataFrame(all_rows)
     eval_df.to_csv(EVAL_CSV, index=False)
     print(f"\n[OK] Per-scenario results -> {EVAL_CSV}")
 
-    # ── Per-scenario summary table ────────────────────────────────────────────
     print("\n" + "=" * 70)
     print("PER-SCENARIO RESULTS")
     print("=" * 70)
@@ -415,7 +366,6 @@ def main():
         ) + f"  {np.mean(maes):>11.4f}"
         print(cols)
 
-    # ── Grouped summaries ─────────────────────────────────────────────────────
     print("\n" + "=" * 70)
     print("GROUPED SUMMARIES")
     print("=" * 70)
@@ -425,7 +375,6 @@ def main():
         if g in rows_by_group:
             print_group_summary(g, rows_by_group[g])
 
-    # Overall
     print_group_summary("ALL", all_rows)
 
     # Leak vs No-Leak MAE ratio
