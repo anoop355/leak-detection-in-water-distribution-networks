@@ -1,27 +1,7 @@
 """
-ekf_recon_eval_train_dataset.py
-================================
-Evaluates EKF reconstruction quality on the stgcn_dataset_ekf scenarios by
-comparing the EKF-reconstructed sensor values against the original ground-truth
-values from stgcn_dataset_v2.
-
-For each scenario the 7 unmonitored sensors are compared:
-    Reconstructed (stgcn_dataset_ekf/data.csv)
-  vs
-    Ground truth  (stgcn_dataset_v2/data.csv)
-
-Metrics computed: MAE, RMSE, R^2
-  - Per sensor, per scenario
-  - Per sensor, grouped by pipe (no-leak / pipe-1..5 / ALL)
-  - Overall mean across all sensors and scenarios
-
-Outputs (EKFplusSTGCN/results/):
-  ekf_recon_train_per_scenario.csv   -- per-sensor metrics for every scenario
-  ekf_recon_train_summary_sensor.csv -- mean per sensor across all scenarios
-  ekf_recon_train_summary_pipe.csv   -- mean per sensor grouped by pipe
-
-Usage (from First_WDN/ or EKFplusSTGCN/):
-    python EKFplusSTGCN/ekf_recon_eval_train_dataset.py
+- Evaluates EKF reconstruction quality on the stgcn_dataset_ekf scenarios
+- Compared reconstructed vs Ground truth
+- Metrics computed MAE, RMSE, R^2
 """
 
 from __future__ import annotations
