@@ -1,15 +1,12 @@
 """
-Investigation 1: Sensitivity / Effective Observability Analysis
-================================================================
-Computes the measurement Jacobian H = d[P4, Q1a, Q3a] / d[D2, D3, D4, D5, D6]
+Sensitivity / Effective Observability Analysis
+
+ Computes the measurement Jacobian H = d[P4, Q1a, Q3a] / d[D2, D3, D4, D5, D6]
 at the nominal operating point, then derives:
   - Per-node sensitivity (column norms)
   - Fisher information matrix  F = H^T R^{-1} H
   - Per-node information content (diagonal of F)
   - Effective observability rank
-
-Run from inside ekf_wdn_project/:
-    py -3 diagnose_observability.py
 """
 from __future__ import annotations
 
@@ -18,9 +15,7 @@ from pathlib import Path
 
 import numpy as np
 
-# ---------------------------------------------------------------------------
 # Make sure the project root is on sys.path so local imports work
-# ---------------------------------------------------------------------------
 sys.path.insert(0, str(Path(__file__).parent))
 
 from config import CONFIG
@@ -29,7 +24,7 @@ from jacobians import numerical_jacobian
 from load_model import extract_model_metadata
 
 
-# ── helpers ─────────────────────────────────────────────────────────────────
+# helpers
 
 def _bar(value: float, max_value: float, width: int = 30) -> str:
     filled = int(round(width * value / max_value)) if max_value > 0 else 0
@@ -48,7 +43,7 @@ def _print_matrix(title: str, mat: np.ndarray, row_labels: list[str], col_labels
         print(f"{row_lbl:<{row_w}}{vals}")
 
 
-# ── main ────────────────────────────────────────────────────────────────────
+# main
 
 def main() -> None:
     print("=" * 60)
@@ -68,7 +63,7 @@ def main() -> None:
     print(f"\nNominal demands (m³/s): {dict(zip(demand_labels, nominal_demands))}")
     print(f"Measurement noise R diagonal: {np.diag(R)}")
 
-    # ── 1. Measurement Jacobian ──────────────────────────────────────────────
+    # 1. Measurement Jacobian
     def measurement_fn(d: np.ndarray) -> np.ndarray:
         snap = hi.simulate_snapshot(d, timestamp_seconds=0)
         return snap.measurement_vector(metadata)
@@ -84,7 +79,7 @@ def main() -> None:
         col_labels=demand_labels,
     )
 
-    # ── 2. Per-node measurement sensitivity (column L2-norm of H) ───────────
+    # 2. Per-node measurement sensitivity (column L2-norm of H)
     col_norms = np.linalg.norm(H, axis=0)   # shape (5,)
     max_norm = col_norms.max() if col_norms.max() > 0 else 1.0
 
@@ -95,7 +90,7 @@ def main() -> None:
         bar = _bar(norm, max_norm)
         print(f"  {lbl:<8} {norm:>14.6f}  {bar}")
 
-    # ── 3. Fisher information matrix F = H^T R^{-1} H ───────────────────────
+    # 3. Fisher information matrix F = H^T R^{-1} 
     R_inv = np.linalg.inv(R)
     F = H.T @ R_inv @ H   # shape (5, 5)
 
@@ -116,7 +111,7 @@ def main() -> None:
         bar = _bar(info, max_info)
         print(f"  {lbl:<8} {info:>14.6f}  {bar}")
 
-    # ── 4. Effective observability rank ─────────────────────────────────────
+    # 4. Effective observability rank
     s_vals = np.linalg.svd(H, compute_uv=False)
     eps = 1e-6
     rank = int(np.sum(s_vals > eps))
@@ -124,19 +119,13 @@ def main() -> None:
     print(f"\nSingular values of H:  {s_vals}")
     print(f"Effective rank of H:   {rank}  (out of {min(H.shape[0], H.shape[1])} possible)")
 
-    # ── 5. Kalman gain approximation at steady state ─────────────────────────
-    # Compute approximate steady-state P from algebraic Riccati, or just use P0
-    # to show the approximate update magnitude for each state.
-    # For a quick estimate: approximate K ~ P0 H^T (H P0 H^T + R)^{-1}
-    # Then the update to the full state x (heads + demands) due to measurement error
-    #
-    # Construct the full H_full (3 x 10) with zeros for head columns
+    # 5. Kalman gain approximation at steady state
     n_states = CONFIG.state_size          # 10
     n_meas = CONFIG.measurement_size      # 3
     n_nodes = len(demand_nodes)           # 5
 
     H_full = np.zeros((n_meas, n_states))
-    H_full[:, n_nodes:] = H              # measurement only depends on demand half of state
+    H_full[:, n_nodes:] = H              
 
     P0 = CONFIG.initial_covariance
     S = H_full @ P0 @ H_full.T + R      # innovation covariance (3x3)
@@ -158,7 +147,7 @@ def main() -> None:
         bar = _bar(gn, max_gain)
         print(f"  {s_lbl:<8} {gn:>12.6f}  {bar}")
 
-    # ── 6. Summary interpretation ────────────────────────────────────────────
+    # 6. Summary interpretation 
     print("\n" + "=" * 60)
     print("SUMMARY")
     print("=" * 60)
