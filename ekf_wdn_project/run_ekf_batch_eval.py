@@ -1,28 +1,3 @@
-"""
-run_ekf_batch_eval.py
-
-Batch evaluation of the EKF hydraulic state estimator over the stgcn_dataset_v2
-test set.  Produces metrics directly comparable to the autoencoder eval scripts.
-
-Placement: ekf_wdn_project/   (so existing module imports work without modification)
-
-Usage (from ekf_wdn_project/):
-    python run_ekf_batch_eval.py               # single-threaded
-    python run_ekf_batch_eval.py --workers 4   # parallel (4 processes)
-
-Outputs (written one level up, next to the autoencoder results):
-    ../ekf_eval_results.csv              -- per-scenario per-node MAE / RMSE / R²
-    ../ekf_reconstruction_plots/         -- time-series plots (6 sample scenarios)
-
-Runtime note
-------------
-Each EKF timestep requires ~12 EPANET hydraulic simulations (10 for numerical
-Jacobians + 2 for prediction/update).  At 24 timesteps per scenario and 474 test
-scenarios that is ~136 000 simulations total.  On CPU this will take significant
-time (~1-3 hours depending on hardware).  Use --workers N to parallelise across
-N CPU cores for an N-fold speedup.  Progress is printed every 10 scenarios.
-"""
-
 from __future__ import annotations
 
 import argparse
@@ -39,7 +14,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-# ── ensure ekf_wdn_project modules are importable regardless of cwd ──────────
+# ensure ekf_wdn_project modules are importable regardless of cwd
 _HERE = Path(__file__).resolve().parent
 if str(_HERE) not in sys.path:
     sys.path.insert(0, str(_HERE))
@@ -50,14 +25,12 @@ from hydraulic_interface import HydraulicInterface
 from jacobians import numerical_jacobian
 from load_model import ModelMetadata, build_initial_state, extract_model_metadata
 
-# ── suppress noisy wntr / epanet logging ─────────────────────────────────────
 logging.basicConfig(level=logging.WARNING)
 logging.getLogger("wntr").setLevel(logging.ERROR)
 logging.getLogger("wntr.epanet.io").setLevel(logging.ERROR)
 
-# ─────────────────────────────────────────────────────────────────────────────
 # PATHS
-# ─────────────────────────────────────────────────────────────────────────────
+
 _PARENT       = _HERE.parent
 DATASET_ROOT  = _PARENT / "stgcn_dataset_v2" / "scenarios"
 MANIFEST_TEST = _PARENT / "stgcn_dataset_v2" / "manifests" / "manifest_test.csv"
@@ -69,9 +42,6 @@ ALL_SENSORS     = ["P2", "P3", "P4", "P5", "P6", "Q1a", "Q2a", "Q3a", "Q4a", "Q5
 MONITORED       = ["P4", "Q1a", "Q3a"]
 UNMONITORED     = ["P2", "P3", "P5", "P6", "Q2a", "Q4a", "Q5a"]
 
-# EKF node/pipe → autoencoder sensor name
-# all_node_pressures columns use bare node ids: "2", "3", "4", "5", "6"
-# all_pipe_flows     columns use pipe ids:      "1a", "2a", "3a", "4a", "5a"
 PRESSURE_COL_MAP = {"P2": "2", "P3": "3", "P5": "5", "P6": "6"}
 FLOW_COL_MAP     = {"Q2a": "2a", "Q4a": "4a", "Q5a": "5a"}
 
@@ -79,9 +49,9 @@ NUM_SAMPLE_NOLEAK = 3
 NUM_SAMPLE_LEAK   = 3
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# EKF CONFIG  (identical hyper-parameters to the existing estimator)
-# ─────────────────────────────────────────────────────────────────────────────
+
+# EKF CONFIG 
+
 def make_config() -> EstimatorConfig:
     return EstimatorConfig(
         inp_path=INP_PATH,
@@ -90,29 +60,15 @@ def make_config() -> EstimatorConfig:
         plots_dir=Path("_batch_tmp/plots"),
     )
 
-
-# ─────────────────────────────────────────────────────────────────────────────
 # CORE: run EKF on a single scenario and return reconstructed pressures/flows
-# ─────────────────────────────────────────────────────────────────────────────
+
 def run_ekf_scenario(
     measurements_df: pd.DataFrame,
     config: EstimatorConfig,
     metadata: ModelMetadata,
     hydraulic: HydraulicInterface,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """
-    Run EKF over all timesteps of one scenario.
 
-    Parameters
-    ----------
-    measurements_df : columns [timestamp_s, P4, Q1a, Q3a]
-                      timestamp_s is in SECONDS
-
-    Returns
-    -------
-    all_node_pressures : DataFrame  columns = [timestamp, 2, 3, 4, 5, 6, L1..L5]
-    all_pipe_flows     : DataFrame  columns = [timestamp, 1a, 1b, 2a, ...]
-    """
     initial_snapshot = hydraulic.simulate_snapshot(
         config.initial_demands, timestamp_seconds=0
     )
@@ -219,10 +175,8 @@ def run_ekf_scenario(
 
     return pd.DataFrame(node_pressure_rows), pd.DataFrame(pipe_flow_rows)
 
-
-# ─────────────────────────────────────────────────────────────────────────────
 # HELPERS
-# ─────────────────────────────────────────────────────────────────────────────
+
 def load_scenario(folder: Path) -> tuple[pd.DataFrame, dict]:
     data   = pd.read_csv(folder / "data.csv")
     import json
@@ -253,7 +207,6 @@ def extract_ekf_reconstruction(
     pressures_df: pd.DataFrame,
     flows_df: pd.DataFrame,
 ) -> dict[str, np.ndarray]:
-    """Map EKF output columns to autoencoder sensor names."""
     recon = {}
     for sensor, col in PRESSURE_COL_MAP.items():
         recon[sensor] = pressures_df[col].values.astype(np.float32)
@@ -262,10 +215,8 @@ def extract_ekf_reconstruction(
         recon[sensor] = np.abs(flows_df[col].values.astype(np.float32))
     return recon
 
-
-# ─────────────────────────────────────────────────────────────────────────────
 # PLOTTING
-# ─────────────────────────────────────────────────────────────────────────────
+
 def plot_scenario(scenario_id, actual_raw, ekf_recon, label_str, plot_dir):
     T      = actual_raw.shape[0]
     t_axis = np.arange(T) * 15
@@ -288,16 +239,10 @@ def plot_scenario(scenario_id, actual_raw, ekf_recon, label_str, plot_dir):
     plt.close(fig)
     return out
 
+# PER-SCENARIO PROCESSING  
 
-# ─────────────────────────────────────────────────────────────────────────────
-# PER-SCENARIO PROCESSING  (extracted so it can be called by parallel workers)
-# ─────────────────────────────────────────────────────────────────────────────
 def _process_one_scenario(folder: Path) -> dict | None:
-    """
-    Run EKF on one scenario and return a result dict, or None on failure.
-    Creates its own config/metadata/hydraulic so it is safe to call from
-    a subprocess worker.
-    """
+
     try:
         cfg      = make_config()
         metadata = extract_model_metadata(cfg)
@@ -344,10 +289,8 @@ def _scenario_worker(folder_str: str) -> dict | None:
         sys.path.insert(0, str(_HERE))
     return _process_one_scenario(Path(folder_str))
 
-
-# ─────────────────────────────────────────────────────────────────────────────
 # MAIN
-# ─────────────────────────────────────────────────────────────────────────────
+
 def main():
     parser = argparse.ArgumentParser(description="EKF batch evaluation")
     parser.add_argument("--workers", type=int, default=1,
@@ -416,11 +359,9 @@ def main():
                   f"({failed} failed)...")
 
     if args.workers <= 1:
-        # ── Sequential ──────────────────────────────────────────────────────
         for folder in test_folders:
             _collect(_process_one_scenario(folder))
     else:
-        # ── Parallel ────────────────────────────────────────────────────────
         folder_strs = [str(f) for f in test_folders]
         with ProcessPoolExecutor(max_workers=args.workers) as executor:
             futures = {executor.submit(_scenario_worker, fs): fs
@@ -433,14 +374,14 @@ def main():
                     failed += 1
                     completed += 1
 
-    # ── Save CSV ──────────────────────────────────────────────────────────────
+    # Save CSV
     eval_df = pd.DataFrame(rows)
     eval_df.to_csv(EVAL_CSV_PATH, index=False)
     print(f"\n[OK] Saved per-scenario results -> {EVAL_CSV_PATH}")
     if failed:
         print(f"  ({failed} scenarios failed and were excluded)")
 
-    # ── Summary metrics ───────────────────────────────────────────────────────
+    # Summary metrics
     print("\n=== Per-Node Test Metrics — EKF (denormalised, unmonitored nodes only) ===")
     print(f"{'Sensor':<8}  {'MAE':>10}  {'RMSE':>10}  {'R2':>8}")
     print("-" * 42)
@@ -457,7 +398,7 @@ def main():
     print(f"\nMean MAE across all unmonitored nodes : {overall_mae:.4f}")
     print(f"Worst-reconstructed node              : {worst} (MAE={node_maes[worst]:.4f})")
 
-    # ── Leak vs No-Leak ───────────────────────────────────────────────────────
+    # Leak vs No-Leak
     print("\n=== Leak vs. No-Leak Reconstruction MAE ===")
     print(f"{'Sensor':<8}  {'No-Leak MAE':>12}  {'Leak MAE':>10}")
     print("-" * 36)
@@ -475,7 +416,7 @@ def main():
             flag = " [anomaly signal preserved]" if ratio > 1.05 else ""
             print(f"  {sensor:<8}: {ratio:.3f}{flag}")
 
-    # ── Plots ─────────────────────────────────────────────────────────────────
+    # Plots
     for scn_id, actual, ekf_recon, label_str in no_leak_samples + leak_samples:
         out = plot_scenario(scn_id, actual, ekf_recon, label_str, PLOT_DIR)
         print(f"  Saved plot -> {out}")
