@@ -19,11 +19,7 @@ This repository is organized around the main parts of the project:
 - dataset and scenario generation scripts used to build the experiments
 - supporting hydraulic network and pattern assets
 
-Large generated training and testing datasets are intentionally not stored here. The repository keeps the scripts used to generate them and the main result folders used to report the final work.
-
 ## Where To Start
-
-If you are new to the project, use this reading order:
 
 1. Read this `README.md`
 2. Open `docs/script_index.md`
@@ -72,19 +68,6 @@ The repository is centered on three technical tracks:
 1. `ST-GCN`: training and evaluation of spatiotemporal graph models, including the 10-sensor setup and sensor placement studies.
 2. `TCN`: temporal convolution baselines for leak detection and localisation.
 3. `EKF`: extended Kalman filter estimation for reconstructing unmonitored hydraulic states and supporting hybrid inference.
-
-## Repository Map
-
-The repository is organized conceptually into five groups:
-
-- Final pipelines and supporting scripts at the repository root
-- `stgcn_placement_bundles/` for ST-GCN sensor-placement model bundles
-- `stgcn_placement_results/` for the full sensor-placement evaluation outputs
-- `EKFplusSTGCN/` for hybrid EKF-STGCN experiments
-- `ekf_wdn_project/` for the standalone EKF Python implementation
-- `EPANET_Patterns_Final/` for final pattern assets used with the hydraulic model
-
-For a guided list of final scripts versus experimental variants, see `docs/script_index.md`.
 
 ## Key Components
 
@@ -162,46 +145,3 @@ python ekf_wdn_project/run_ekf_batch_eval.py
 ```bash
 python pipeline_ekf_stgcn.py
 ```
-
-## Main Result Folders
-
-The main reported result folders in this repository are:
-
-- `test_data_results/evaluation/` for the final TCN implementation
-- `stgcn_placement_results/` for the ST-GCN sensor-placement study
-- `EKFplusSTGCN/results/` for the hybrid EKF-STGCN evaluation outputs
-
-## Data and Large Outputs
-
-The original workspace contains large generated datasets and experiment outputs. Only the main result folders needed to understand the final work are included here. Large regenerated datasets have been excluded from version control so the repository stays usable.
-
-If you want to share data publicly, the best approach is to:
-
-- keep code, bundles, and main result folders in this repository
-- publish large raw/generated datasets separately via Google Drive, Zenodo, or GitHub Releases
-- link the external dataset location from this README if needed
-
-## Suggested GitHub Repository Name
-
-One strong option is:
-
-`leak-localisation-detection-system`
-
-Other good options:
-
-- `wdn-leak-localisation-detection`
-- `hybrid-ekf-stgcn-leak-detection`
-- `water-network-leak-detection`
-
-## Next Publication Steps
-
-1. Review the `.gitignore` and confirm which datasets or results you want public.
-2. Initialize git and commit the curated repository contents.
-3. Create an empty GitHub repository in your account.
-4. Add the remote and push this local repository.
-
-## Notes
-
-- Some scripts use hardcoded local paths or dataset folders and may need small cleanup before wider public release.
-- The current layout preserves your working environment first; it does not yet refactor everything into a package structure.
-- `docs/script_index.md` is the main navigation page for locating final scripts, result folders, and supporting generation scripts.
