@@ -1,108 +1,116 @@
 # Repository Guide
 
-This guide explains how the current research workspace maps into a publishable GitHub repository.
+This guide explains how the research workspace maps into a publishable
+GitHub repository, what is tracked, what is excluded, and how to
+navigate the structure.
 
-## What Should Be Tracked
+---
 
-These are the files and folders that best represent the project:
+## What Is Tracked
 
-- Core training and evaluation scripts at the repository root
-- `ekf_wdn_project/` for the standalone EKF Python implementation
-- `EKFplusSTGCN/` for EKF-STGCN integration experiments
-- `stgcn_placement_bundles/` for trained ST-GCN sensor-placement models
-- `stgcn_placement_results/` for the ST-GCN sensor-placement outputs
-- `test_data_results/evaluation/` for the final TCN outputs
-- The final TCN bundle at the repository root
-- Network definition files such as `base3.inp` and related `.net` assets
-- Configuration files such as `sensor_placements.csv`
-- `EPANET_Patterns_Final/` for final pattern assets
-- Documentation that explains final scripts and result folders
+These are the files and folders that represent the project:
 
-## What Is Currently Ignored
+* Core training and evaluation scripts at the repository root
+* `ekf_wdn_project/` — standalone EKF Python implementation (retained for reference)
+* `EKFplusSTGCN/` — EKF + ST-GCN investigation experiments and results
+* `stgcn_placement_bundles/` — trained ST-GCN sensor-placement model bundles
+* `stgcn_placement_results/` — ST-GCN sensor placement evaluation outputs
+* `test_data_results/evaluation/` — final TCN evaluation outputs
+* `multileak_tcn_bundleV6.pt` — final trained TCN model bundle
+* `base.inp`, `base2.inp`, `base3.inp` — EPANET network input files
+* `first_project.net`, `first_project_1.net`, `first_project_2.net` — EPANET project files
+* `EPANET_Patterns_Final/` — final demand pattern files used across all scenarios
+* `sensor_placements.csv` — GA sensor placement configurations and fitness scores
+* `docs/` — repository guide and script index
 
-The `.gitignore` excludes folders that are either:
+---
 
-- regenerated from scripts
-- very large and impractical for a source repository
-- local-environment specific
-- result-heavy rather than source-heavy
+## What Is Excluded
 
-Examples include:
+The `.gitignore` excludes folders that are either regenerated from scripts,
+too large for a source repository, or local-environment specific. Examples:
 
-- `stgcn_dataset/`
-- `training_cases/`
-- `training_cases_output/`
-- `test_dataset/`
-- generated raw datasets and scratch output directories
-- `.venv/`
+* `stgcn_dataset/`
+* `training_cases/`
+* `training_cases_output/`
+* `test_dataset/`
+* Generated raw datasets and scratch output directories
+* `.venv/`
 
-## Suggested Public-Facing Structure
+---
 
-If you decide to refactor later, this is a good target structure:
+## Suggested Refactored Structure
 
-```text
+If the repository is refactored after submission, this is a recommended
+target structure. For now, research scripts are kept at the root to avoid
+breaking hardcoded relative paths.
+
+```
 .
-|-- README.md
-|-- requirements.txt
-|-- docs/
-|-- models/
-|-- data/
-|-- stgcn/
-|-- tcn/
-|-- ekf/
-|-- pipelines/
-`-- scripts/
+├── README.md
+├── requirements.txt
+├── docs/
+├── hydraulic/          # .inp, .net, and pattern files
+├── stgcn/              # ST-GCN training, evaluation, and bundles
+├── tcn/                # TCN training, evaluation, and bundle
+├── ekf/                # EKF implementation (investigated alternative)
+└── scripts/            # Dataset generation and supporting utilities
 ```
 
-For now, keeping the research scripts in place is the safest choice because many of them rely on relative paths to the current directory layout.
+---
 
 ## Recommended First GitHub Release Content
 
 For the first public version, include:
 
-- the final ST-GCN training and evaluation scripts
-- the final TCN training and evaluation scripts
-- the standalone EKF Python implementation
-- the EKF + ST-GCN pipeline script
-- the ST-GCN sensor-placement bundle collection
-- the main result folders for the final implementations
-- the final TCN bundle
-- sample hydraulic network files
-- final pattern assets
-- documentation on how datasets are generated or obtained
-- a script index so readers can find final code and result folders quickly
+* Final ST-GCN training and evaluation scripts
+* Final TCN training and evaluation scripts
+* Standalone EKF Python implementation (as an investigated alternative)
+* ST-GCN sensor placement bundle collection
+* Main result folders for final implementations
+* Final TCN bundle
+* EPANET hydraulic network files and demand pattern assets
+* Documentation covering dataset generation, script roles, and setup
+
+---
 
 ## Main Result Folders
 
-The main result folders that should remain visible in the repository are:
+| Folder | Contents |
+|--------|----------|
+| `test_data_results/evaluation/` | Final TCN evaluation outputs |
+| `stgcn_placement_results/` | ST-GCN sensor placement study outputs |
+| `EKFplusSTGCN/results/` | EKF + ST-GCN investigation outputs (not primary pipeline) |
 
-- `test_data_results/evaluation/` for the final TCN implementation
-- `stgcn_placement_results/` for the ST-GCN placement study
-- `EKFplusSTGCN/results/` for the hybrid EKF-STGCN outputs
+---
 
-## Code-Only EKF Folder
+## EKF Folder
 
 The repository keeps only Python source files from `ekf_wdn_project/`.
 
-- This keeps the EKF implementation visible
-- It avoids mixing the code folder with generated data and output files
-- Supporting hybrid EKF-STGCN results are instead retained in `EKFplusSTGCN/`
+* This keeps the EKF implementation visible for reference
+* It avoids mixing the code folder with generated data and output files
+* Supporting EKF + ST-GCN investigation results are retained in `EKFplusSTGCN/`
+
+---
 
 ## Before Pushing Publicly
 
 Check for:
 
-- hardcoded personal file paths
-- sensitive or accidental local files
-- oversized datasets
-- folders that repeat raw/generated data already reproducible from scripts
+* Hardcoded personal file paths (particularly `/content/` Colab paths)
+* Sensitive or accidental local files
+* Oversized datasets
+* Folders containing raw or generated data that is reproducible from scripts
+
+---
 
 ## Helpful Git Commands
 
 ```bash
 git init
 git add .
-git commit -m "Initial commit for leak localisation and detection system"
+git commit -m "Initial commit for leak detection and localisation system"
 git branch -M main
 git remote add origin https://github.com/<your-username>/<your-repo>.git
 git push -u origin main
