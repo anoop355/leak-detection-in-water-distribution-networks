@@ -2,9 +2,8 @@
 
 This repository contains the full research codebase for a simulation-based
 study of data-driven leak detection and localisation in water distribution
-networks (WDNs). The work is modelled on the infrastructure of the Water
-and Sewerage Authority (WASA) of Trinidad and Tobago and is submitted in
-partial fulfilment of ECNG 3020 at the University of the West Indies.
+networks (WDNs). The work is modelled on similar infrastructure to the Water
+and Sewerage Authority (WASA) of Trinidad and Tobago.
 
 The framework combines hydraulic simulation (EPANET/WNTR) with deep
 learning to detect and localise leaks in a five-pipe, five-junction
@@ -22,17 +21,15 @@ sensor configurations across varying budget levels.
 
 ### TCN (Multi-Leak Detection and Localisation)
 A Temporal Convolutional Network trained to detect and localise
-simultaneous leaks (one, two, or three concurrent leaks). Augmented
-training data was used to address coverage gaps in three-leak scenarios.
+simultaneous leaks (one, two, or three concurrent leaks).
 
 ### EKF (Investigated Alternative)
 An Extended Kalman Filter was investigated as a state estimation
 component to reconstruct hydraulic states at unmonitored nodes.
-Structural observability limitations were identified — specifically,
-pipes D4, D5, and D6 lie in the null space of the measurement Jacobian
-— which caused reconstruction failure that propagated into ST-GCN
-localisation. The EKF is retained in the repository for reference and
-is not part of the primary pipeline.
+Structural observability limitations on pipes D4, D5, and D6,
+which lie in the null space of the measurement Jacobian 
+caused reconstruction failure. The EKF is retained in the 
+repository for reference and is not part of the primary pipeline.
 
 ---
 
@@ -54,38 +51,52 @@ is not part of the primary pipeline.
 └── README.md
 ```
 
+> **Note on generated datasets:** The `stgcn_dataset/` and `test_dataset/`
+> folders are not tracked in this repository. They are produced on demand
+> by the dataset generation scripts listed below and may be excluded from
+> version control due to their size.
+
 ---
 
 ## Final Pipeline
 
 ### ST-GCN
 
-| Step                  | Script                              |
-|-----------------------|-------------------------------------|
-| Dataset generation    | `generate_stgcn_dataset_v2.py`      |
-| Training              | `train_stgcn_sensor_placement.py`   |
-| Sensor placement (GA) | `ga_pipeline2.py`                   |
-| Evaluation            | `evaluate_stgcn_sensor_placement.py`|
+| Step | Script |
+|------|--------|
+| Dataset generation | `generate_stgcn_dataset_v2.py` |
+| Training (10-sensor S10 model) | `train_stgcn_detection_localisation_s10.py` |
+| Sensor placement sweep (GA) | `ga_pipeline2.py` |
+| Training (all budget configurations) | `train_stgcn_sensor_placement.py` |
+| Test dataset generation | `generate_test_dataset2.py` |
+| Evaluation (S10 model) | `evaluate_stgcn_s10.py` |
+| Evaluation (placement sweep) | `evaluate_stgcn_sensor_placement.py` |
+| Inference from `.inp` file | `predict_from_inp.py` |
+
+**Model bundles:** `stgcn_placement_bundles/`
+**Results:** `stgcn_placement_results/`
 
 ### TCN
 
-| Step                        | Script                                      |
-|-----------------------------|---------------------------------------------|
-| Data generation (1-leak)    | `generate_one_leak_training_data.py`        |
-| Data generation (2-leak)    | `generate_two_leaks_training_data.py`       |
-| Data generation (3-leak)    | `generate_three_leaks_training_data2.py`    |
-| Test set generation         | `generate_test_set.py`                      |
-| Training (final)            | `train_tcn_detection_localisation5.py`      |
-| Evaluation (final)          | `evaluate_model2.py`                        |
-| Final bundle                | `multileak_tcn_bundleV6.pt`                 |
+| Step | Script |
+|------|--------|
+| Data generation (1-leak) | `generate_one_leak_training_data.py` |
+| Data generation (2-leak) | `generate_two_leaks_training_data.py` |
+| Data generation (3-leak) | `generate_three_leaks_training_data2.py` |
+| Test set generation | `generate_test_set.py` |
+| Training (final) | `train_tcn_detection_localisation5.py` |
+| Evaluation (final) | `evaluate_model2.py` |
+| Final bundle | `multileak_tcn_bundleV6.pt` |
+
+**Results:** `test_data_results/evaluation/`
 
 ### EKF (Investigated — not primary pipeline)
 
-| Step                  | Script                                    |
-|-----------------------|-------------------------------------------|
-| Core EKF              | `ekf_wdn_project/ekf.py`                 |
-| Hydraulic interface   | `ekf_wdn_project/hydraulic_interface.py` |
-| Batch evaluation      | `ekf_wdn_project/run_ekf_batch_eval.py`  |
+| Step | Script |
+|------|--------|
+| Core EKF | `ekf_wdn_project/ekf.py` |
+| Hydraulic interface | `ekf_wdn_project/hydraulic_interface.py` |
+| Batch evaluation | `ekf_wdn_project/run_ekf_batch_eval.py` |
 
 ---
 
@@ -103,7 +114,38 @@ pip install -r requirements.txt
 > in Google Colab and contain hardcoded paths beginning with `/content/` or
 > `/content/drive/MyDrive/`. These paths must be updated to match your local
 > directory structure before running. Each script contains a clearly marked
-> `# CONFIG` or `# USER SETTINGS` block at the top where these paths are set.
+> `# CONFIG` or `# SETTINGS` block at the top where these paths are set.
+
+---
+
+## Typical Workflows
+
+### 1. Generate the ST-GCN training dataset
+```bash
+python generate_stgcn_dataset_v2.py
+```
+
+### 2. Train the ST-GCN S10 model
+```bash
+python train_stgcn_detection_localisation_s10.py
+```
+
+### 3. Generate the ST-GCN test dataset and evaluate
+```bash
+python generate_test_dataset2.py
+python evaluate_stgcn_s10.py
+```
+
+### 4. Run inference on a custom `.inp` file
+```bash
+python predict_from_inp.py
+```
+
+### 5. Train or evaluate the final TCN model
+```bash
+python train_tcn_detection_localisation5.py
+python evaluate_model2.py
+```
 
 ---
 
