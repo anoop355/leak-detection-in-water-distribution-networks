@@ -1,8 +1,7 @@
 # Repository Guide
 
 This guide explains how the research workspace maps into a publishable
-GitHub repository, what is tracked, what is excluded, and how to
-navigate the structure.
+GitHub repository.
 
 ---
 
@@ -39,41 +38,6 @@ too large for a source repository, or local-environment specific. Examples:
 
 ---
 
-## Suggested Refactored Structure
-
-If the repository is refactored after submission, this is a recommended
-target structure. For now, research scripts are kept at the root to avoid
-breaking hardcoded relative paths.
-
-```
-.
-├── README.md
-├── requirements.txt
-├── docs/
-├── hydraulic/          # .inp, .net, and pattern files
-├── stgcn/              # ST-GCN training, evaluation, and bundles
-├── tcn/                # TCN training, evaluation, and bundle
-├── ekf/                # EKF implementation (investigated alternative)
-└── scripts/            # Dataset generation and supporting utilities
-```
-
----
-
-## Recommended First GitHub Release Content
-
-For the first public version, include:
-
-* Final ST-GCN training and evaluation scripts
-* Final TCN training and evaluation scripts
-* Standalone EKF Python implementation (as an investigated alternative)
-* ST-GCN sensor placement bundle collection
-* Main result folders for final implementations
-* Final TCN bundle
-* EPANET hydraulic network files and demand pattern assets
-* Documentation covering dataset generation, script roles, and setup
-
----
-
 ## Main Result Folders
 
 | Folder | Contents |
@@ -91,26 +55,6 @@ The repository keeps only Python source files from `ekf_wdn_project/`.
 * This keeps the EKF implementation visible for reference
 * It avoids mixing the code folder with generated data and output files
 * Supporting EKF + ST-GCN investigation results are retained in `EKFplusSTGCN/`
-
----
-
-## Before Pushing Publicly
-
-Check for:
-
-* Hardcoded personal file paths (particularly `/content/` Colab paths)
-* Sensitive or accidental local files
-* Oversized datasets
-* Folders containing raw or generated data that is reproducible from scripts
-
----
-
-## Helpful Git Commands
-
-```bash
-git init
-git add .
-git commit -m "Initial commit for leak detection and localisation system"
 git branch -M main
 git remote add origin https://github.com/<your-username>/<your-repo>.git
 git push -u origin main
