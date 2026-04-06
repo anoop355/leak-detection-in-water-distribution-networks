@@ -128,4 +128,4 @@ tables above and in `docs/script_index.md`.
 
 This project was completed as ECNG 3020 (Engineering Project) at the
 Department of Electrical and Computer Engineering, University of the
-West Indies, St. Augustine. Supervised by Dr. Arvind Singh.
+West Indies, St. Augustine. Supervised by Prof. Arvind Singh.
