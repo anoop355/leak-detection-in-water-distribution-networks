@@ -8,7 +8,7 @@ seeing the project for the first time.
 
 ## Where to Start
 
-If you are new to the repository, read in this order:
+Read in this order:
 
 1. `README.md` — project overview and setup
 2. `docs/repository_guide.md` — file map and folder structure
@@ -21,14 +21,20 @@ If you are new to the repository, read in this order:
 These are the definitive scripts for the ST-GCN single-leak detection
 and localisation model, including the sensor placement study.
 
+> **Note:** `stgcn_dataset/` and `test_dataset/` are not tracked in the
+> repository. They must be generated on demand using the scripts below
+> before training or evaluation can be run.
+
 | Script | Role |
 |--------|------|
-| `generate_stgcn_dataset_v2.py` | Generates hydraulic simulation scenarios for ST-GCN training |
+| `generate_stgcn_dataset_v2.py` | Generates `stgcn_dataset/` — hydraulic simulation scenarios for ST-GCN training. |
+| `train_stgcn_detection_localisation_s10.py` | Trains the ST-GCN on all 10 sensors. Reads from `stgcn_dataset/` via manifest CSVs. Saves `stgcn_bundle_S10-A.pt`. |
+| `ga_pipeline2.py` | Runs the Genetic Algorithm sensor placement optimisation across budget levels |
 | `train_stgcn_sensor_placement.py` | Trains ST-GCN models across all sensor budget configurations |
-| `ga_pipeline2.py` | Runs the Genetic Algorithm sensor placement optimisation |
-| `generate_test_dataset2.py` | Generates held-out test scenarios for ST-GCN evaluation; used with `evaluate_stgcn_sensor_placement.py` |
-| `evaluate_stgcn_sensor_placement.py` | Evaluates trained ST-GCN models across all sensor placements |
-| `predict_from_inp.py` | Accepts a user-supplied `.inp` file and returns leak detection and localisation predictions |
+| `generate_test_dataset2.py` | Generates `test_dataset/` — new scenarios that the model was not trained on. |
+| `evaluate_stgcn_s10.py` | Evaluates the S10-A bundle against `test_dataset/`. Outputs to `stgcn_s10_evaluation/`. |
+| `evaluate_stgcn_sensor_placement.py` | Evaluates trained ST-GCN models across all sensor placement configurations |
+| `predict_from_inp.py` | Accepts a user-supplied `.inp` file via the command line and returns leak detection and localisation predictions |
 
 **Model bundles:** `stgcn_placement_bundles/`
 **Results:** `stgcn_placement_results/`
@@ -44,8 +50,9 @@ localisation model.
 |--------|------|
 | `generate_one_leak_training_data.py` | Generates single-leak training scenarios |
 | `generate_two_leaks_training_data.py` | Generates two-leak training scenarios |
-| `generate_three_leaks_training_data2.py` | Generates three-leak training scenarios (augmented, final version) |
-| `generate_test_set.py` | Generates the held-out test dataset for TCN evaluation |
+| `generate_three_leaks_training_data.py` | Generates three-leak training scenarios |
+| `generate_three_leaks_training_data2.py` | Generates additional three-leak training scenarios |
+| `generate_test_set.py` | Generates the test dataset for TCN evaluation, based on new scenarios |
 | `train_tcn_detection_localisation5.py` | Final TCN training script |
 | `evaluate_model2.py` | Final TCN evaluation script |
 
@@ -76,8 +83,8 @@ are retained for reference.
 
 ## Experimental Script Variants (Development History)
 
-The repository root contains numbered variants of several scripts. These
-represent iterative development stages and are retained for reproducibility.
+The repository root contains iterative development stages.
+These are retained for reproducibility.
 They should not be used in place of the final scripts listed above.
 
 | Script | Status |
@@ -93,23 +100,23 @@ They should not be used in place of the final scripts listed above.
 | `generate_test_dataset.py` | Early version — superseded |
 | `generate_test_dataset2.py` | **FINAL** (ST-GCN test scenarios) |
 | `generate_test_set.py` | **FINAL** (TCN test scenarios) |
-| `generate_three_leaks_training_data.py` | Early version — superseded |
+| `generate_three_leaks_training_data.py` | **FINAL** (augmented data) |
 | `generate_three_leaks_training_data2.py` | **FINAL** (augmented data) |
 | `ga_pipeline.py` | Early GA version — superseded |
 | `ga_pipeline2.py` | **FINAL** |
 | `evaluate_model.py` | Early evaluation — superseded |
 | `evaluate_model2.py` | **FINAL** |
 | `evaluate_stgcn_model_v1.py` | Early ST-GCN evaluation — superseded |
-| `evaluate_stgcn_sensor_placement.py` | **FINAL** |
+| `evaluate_stgcn_s10.py` | **FINAL** (S10 model evaluation) |
+| `evaluate_stgcn_sensor_placement.py` | **FINAL** (placement sweep evaluation) |
 
 ---
 
 ## Diagnostic Scripts
 
 These scripts were used during model investigation to trace the source of
-a specific failure mode: the systematic misclassification of Pipe 1 leaks
-as Pipe 4 leaks in the ST-GCN model (12 affected scenarios under the
-S10-A sensor configuration). They are retained for reproducibility.
+a specific failure mode. The misclassification of Pipe 1 leaks
+as Pipe 4 leaks in the ST-GCN model. They are retained for reproducibility.
 
 | Script | Role |
 |--------|------|
@@ -133,7 +140,7 @@ S10-A sensor configuration). They are retained for reproducibility.
 ## Hydraulic Network Assets
 
 These files define the water distribution network used in all simulations.
-They are a core component of the framework — all hydraulic scenario
+They are a core component of the framework. All hydraulic scenario
 generation depends on these inputs.
 
 | Item | Description |
