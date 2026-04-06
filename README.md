@@ -1,147 +1,131 @@
-# Leak Localisation and Detection System
+# Leak Detection and Localisation in Water Distribution Networks
 
-This repository packages the main components of a water distribution network leak localisation and detection project into one research codebase:
+This repository contains the full research codebase for a simulation-based
+study of data-driven leak detection and localisation in water distribution
+networks (WDNs). The work is modelled on the infrastructure of the Water
+and Sewerage Authority (WASA) of Trinidad and Tobago and is submitted in
+partial fulfilment of ECNG 3020 at the University of the West Indies.
 
-- `ST-GCN` models for leak detection and localisation
-- `TCN` baselines for temporal leak detection/localisation
-- `EKF` state estimation and reconstruction for partially observed sensing
-- `EKF + ST-GCN` pipeline evaluation for hybrid reconstruction and classification
+The framework combines hydraulic simulation (EPANET/WNTR) with deep
+learning to detect and localise leaks in a five-pipe, five-junction
+network monitored by ten sensor channels (P2–P6, Q1a–Q5a).
 
-The current workspace already contains trained model bundles, evaluation scripts, EPANET/WNTR assets, and supporting utilities. This repository layer documents and organizes those pieces for GitHub publication.
+---
 
-## What This Repository Contains
+## Models
 
-This repository is organized around the main parts of the project:
+### ST-GCN (Primary Model — Single-Leak Detection and Localisation)
+A Spatio-Temporal Graph Convolutional Network trained to detect and
+localise single leaks across five pipes. A sensor placement study
+using a Genetic Algorithm (GA) was conducted to identify optimal
+sensor configurations across varying budget levels.
 
-- final TCN training, evaluation, and result outputs
-- final ST-GCN sensor-placement training, bundles, and result outputs
-- EKF + ST-GCN integration code and result outputs
-- dataset and scenario generation scripts used to build the experiments
-- supporting hydraulic network and pattern assets
+### TCN (Multi-Leak Detection and Localisation)
+A Temporal Convolutional Network trained to detect and localise
+simultaneous leaks (one, two, or three concurrent leaks). Augmented
+training data was used to address coverage gaps in three-leak scenarios.
 
-## Where To Start
+### EKF (Investigated Alternative)
+An Extended Kalman Filter was investigated as a state estimation
+component to reconstruct hydraulic states at unmonitored nodes.
+Structural observability limitations were identified — specifically,
+pipes D4, D5, and D6 lie in the null space of the measurement Jacobian
+— which caused reconstruction failure that propagated into ST-GCN
+localisation. The EKF is retained in the repository for reference and
+is not part of the primary pipeline.
 
-1. Read this `README.md`
-2. Open `docs/script_index.md`
-3. Review the final TCN path
-4. Review the final ST-GCN path
-5. Review `EKFplusSTGCN/` for the hybrid workflow and results
+---
+
+## Repository Structure
+
+```
+.
+├── base.inp / base2.inp / base3.inp      # EPANET network input files
+├── EPANET_Patterns_Final/                # Demand pattern files
+├── multileak_tcn_bundleV6.pt             # Final trained TCN model bundle
+├── stgcn_placement_bundles/              # Trained ST-GCN models (all sensor budgets)
+├── stgcn_placement_results/              # ST-GCN sensor placement evaluation results
+├── test_data_results/evaluation/         # TCN evaluation outputs
+├── EKFplusSTGCN/                         # EKF investigation scripts and results
+├── ekf_wdn_project/                      # EKF core implementation
+├── docs/                                 # Script index and repository guide
+├── sensor_placements.csv                 # GA sensor placement results summary
+├── requirements.txt                      # Python dependencies
+└── README.md
+```
+
+---
 
 ## Final Pipeline
 
-The repository contains multiple experimental scripts, but the main final pipeline for the project is:
-
-### Final TCN
-
-- Training: `train_tcn_detection_localisation5.py`
-- Evaluation: `evaluate_model2.py`
-- Final bundle: `multileak_tcn_bundleV6.pt`
-- Main result folder: `test_data_results/evaluation/`
-
-### Final ST-GCN
-
-- Training: `train_stgcn_sensor_placement.py`
-- Evaluation: `evaluate_stgcn_sensor_placement.py`
-- Final model family and placement sweep: `stgcn_placement_bundles/`
-- Main result folder: `stgcn_placement_results/`
-
-### Final EKF + ST-GCN Integration
-
-- EKF-STGCN experiments and evaluation: `EKFplusSTGCN/`
-- Main result folder: `EKFplusSTGCN/results/`
-
-### Final Data / Scenario Generation
-
-- ST-GCN dataset generation: `generate_stgcn_dataset_v2.py`
-- Test scenario generation: `generate_test_dataset2.py`, `generate_test_set.py`
-- Multi-leak TCN scenario generation:
-  - `generate_one_leak_training_data.py`
-  - `generate_two_leaks_training_data.py`
-- `generate_three_leaks_training_data.py`
-- `generate_three_leaks_training_data2.py`
-- GA pipeline used in the workflow: `ga_pipeline2.py`
-
-## Project Scope
-
-The repository is centered on three technical tracks:
-
-1. `ST-GCN`: training and evaluation of spatiotemporal graph models, including the 10-sensor setup and sensor placement studies.
-2. `TCN`: temporal convolution baselines for leak detection and localisation.
-3. `EKF`: extended Kalman filter estimation for reconstructing unmonitored hydraulic states and supporting hybrid inference.
-
-## Key Components
-
 ### ST-GCN
 
-- Final training for sensor-placement experiments: `train_stgcn_sensor_placement.py`
-- Final evaluation for sensor-placement experiments: `evaluate_stgcn_sensor_placement.py`
-- Placement bundles: `stgcn_placement_bundles/`
-- Placement results: `stgcn_placement_results/`
+| Step                  | Script                              |
+|-----------------------|-------------------------------------|
+| Dataset generation    | `generate_stgcn_dataset_v2.py`      |
+| Training              | `train_stgcn_sensor_placement.py`   |
+| Sensor placement (GA) | `ga_pipeline2.py`                   |
+| Evaluation            | `evaluate_stgcn_sensor_placement.py`|
 
 ### TCN
 
-- Final TCN training entry point: `train_tcn_detection_localisation5.py`
-- Final TCN evaluation entry point: `evaluate_model2.py`
-- Final TCN bundle: `multileak_tcn_bundleV6.pt`
-- Final result outputs: `test_data_results/evaluation/`
+| Step                        | Script                                      |
+|-----------------------------|---------------------------------------------|
+| Data generation (1-leak)    | `generate_one_leak_training_data.py`        |
+| Data generation (2-leak)    | `generate_two_leaks_training_data.py`       |
+| Data generation (3-leak)    | `generate_three_leaks_training_data2.py`    |
+| Test set generation         | `generate_test_set.py`                      |
+| Training (final)            | `train_tcn_detection_localisation5.py`      |
+| Evaluation (final)          | `evaluate_model2.py`                        |
+| Final bundle                | `multileak_tcn_bundleV6.pt`                 |
 
-### EKF
+### EKF (Investigated — not primary pipeline)
 
-- Core EKF implementation: `ekf_wdn_project/ekf.py`
-- Hydraulic model interface: `ekf_wdn_project/hydraulic_interface.py`
-- Jacobians and configuration: `ekf_wdn_project/jacobians.py`, `ekf_wdn_project/config.py`
-- Batch and focused evaluation runners: `ekf_wdn_project/run_ekf_batch_eval.py`, `ekf_wdn_project/run_ekf_focused_eval.py`
-- The repository keeps Python source files only from `ekf_wdn_project/`
+| Step                  | Script                                    |
+|-----------------------|-------------------------------------------|
+| Core EKF              | `ekf_wdn_project/ekf.py`                 |
+| Hydraulic interface   | `ekf_wdn_project/hydraulic_interface.py` |
+| Batch evaluation      | `ekf_wdn_project/run_ekf_batch_eval.py`  |
 
-### Hybrid EKF + ST-GCN
+---
 
-- End-to-end pipeline: `pipeline_ekf_stgcn.py`
-- Supporting integration experiments: `EKFplusSTGCN/`
-- Result outputs: `EKFplusSTGCN/results/`
+## Environment Setup
 
-## Repository Layout
-
-This project currently keeps the original research scripts at the repository root to avoid breaking hardcoded paths during publication. The repository is documented as follows:
-
-- [`README.md`](README.md): project overview and setup
-- [`requirements.txt`](requirements.txt): Python dependencies
-- [`docs/repository_guide.md`](docs/repository_guide.md): file map and publication guidance
-- [`docs/script_index.md`](docs/script_index.md): final scripts and experimental variants map
-
-## Recommended Environment
-
-Python `3.10` or `3.11` is recommended.
-
-Install dependencies with:
+Python 3.10 or 3.11 is recommended.
 
 ```bash
+git clone https://github.com/anoop355/leak-detection-in-water-distribution-networks.git
+cd leak-detection-in-water-distribution-networks
 pip install -r requirements.txt
 ```
 
-## Typical Workflows
+> **Note on paths:** Several training and evaluation scripts were developed
+> in Google Colab and contain hardcoded paths beginning with `/content/` or
+> `/content/drive/MyDrive/`. These paths must be updated to match your local
+> directory structure before running. Each script contains a clearly marked
+> `# CONFIG` or `# USER SETTINGS` block at the top where these paths are set.
 
-### 1. Train or evaluate final ST-GCN models
+---
 
-```bash
-python train_stgcn_sensor_placement.py
-python evaluate_stgcn_sensor_placement.py
-```
+## Note on Experimental Scripts
 
-### 2. Train or evaluate the final TCN model
+The repository root contains multiple numbered variants of training and
+evaluation scripts (e.g. `train_tcn_detection_localisation1.py` through
+`_5.py`). These represent iterative development stages and are retained
+for reproducibility. The final scripts to use are identified in the
+tables above and in `docs/script_index.md`.
 
-```bash
-python train_tcn_detection_localisation5.py
-python evaluate_model2.py --bundle multileak_tcn_bundleV6.pt
-```
+---
 
-### 3. Run EKF estimation
+## Documentation
 
-```bash
-python ekf_wdn_project/run_ekf_batch_eval.py
-```
+- `docs/script_index.md` — maps every script to its role and development stage
+- `docs/repository_guide.md` — file map and publication guidance
 
-### 4. Run the hybrid EKF + ST-GCN pipeline
+---
 
-```bash
-python pipeline_ekf_stgcn.py
-```
+## Project Context
+
+This project was completed as ECNG 3020 (Engineering Project) at the
+Department of Electrical and Computer Engineering, University of the
+West Indies, St. Augustine. Supervised by Dr. Arvind Singh.
